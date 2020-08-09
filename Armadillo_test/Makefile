@@ -1,10 +1,9 @@
-CXX=g++ --std=c++11
-CXXFLAGS=-DARMA_DONT_USE_WRAPPER
-BLASLIB=/usr/local/openblas-0.3.7/gcc-8.3/lib/libopenblas.a
-LAPACKLIB=-llapack -lgfortran
+CXX=g++
+CXXFLAGS=-O --std=c++11
+LIBS=-larmadillo
 
 armadillo_test.exe : armadillo_test.cpp GramSchmidt.cpp
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(BLASLIB) $(LAPACKLIB)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBS)
 
 clean :
 	\rm a_data e.txt tmp.txt
