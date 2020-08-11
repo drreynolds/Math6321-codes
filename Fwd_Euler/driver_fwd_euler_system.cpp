@@ -32,7 +32,7 @@ public:
 
 // computes the true solution, y(t)
 vec TrueSolution(mat& V, mat& D, mat& Vinv, double t, double t0, vec& y0) {
-  mat eD(size(V));             // construct the matrix exponential
+  mat eD(size(V),arma::fill::zeros);             // construct the matrix exponential
   for (size_t i=0; i<D.n_rows; i++)
     eD(i,i) = exp(D(i,i)*(t-t0));
   return (V*(eD*(Vinv*y0)));   // ytrue = V*exp(D*t)*V^{-1}*y0
