@@ -1,20 +1,20 @@
-/* Main routine to test forward Euler solver for a system of ODEs
+/* Main routine to test adaptive forward Euler method on a system of ODEs
      y' = f(t,y), t in [0,1],
      y(0) = y0.
 
    D.R. Reynolds
    Math 6321 @ SMU
-   Fall 2020 */
+   Fall 2020  */
 
 #include <iostream>
-#include "fwd_euler.hpp"
+#include "adapt_euler.hpp"
 
 using namespace std;
 using namespace arma;
 
 
 // ODE RHS function class -- instantiates a RHSFunction
-//   includes extra routines to set up the problem and
+//   includes extra routines to set up the problem and 
 //   evaluate the analytical solution
 class ODESystem: public RHSFunction {
   mat A;
@@ -49,9 +49,6 @@ int main(int argc, char **argv) {
     N = atoi(argv[1]);
   cout << "\nRunning system ODE problem with N = " << N << endl;
 
-  // time steps to try
-  vec h("0.04, 0.02, 0.01, 0.005, 0.0025, 0.00125");
-
   // set up problem
   mat V = eye(N,N) + randu(N,N);   // fill with random numbers
   mat D = diagmat(-randu(N,1));
@@ -69,34 +66,46 @@ int main(int argc, char **argv) {
   int Nout = 6;  // includes initial condition
   vec tspan = linspace(t0, Tf, Nout);
 
+  // solver tolerances
+  vec rtols("1.e-3, 1.e-5, 1.e-7");
+  double atol = 1.e-13;
+
   // initial condition
   vec Y0 = randu(N);
 
-  // create forward Euler stepper object
-  ForwardEulerStepper FE(MyProblem, Y0);
+  // create true solution object
+  mat Ytrue(N,Nout);
+  for (size_t i=0; i<Nout; i++)
+    Ytrue.col(i) = TrueSolution(V,D,Vinv,tspan(i),t0,Y0);
 
-  // loop over time step sizes
-  for (size_t ih=0; ih<h.n_elem; ih++) {
+  // statistics variables
+  long int totsteps=0, totfails=0;
 
-    // call stepper
-    cout << "\nRunning with stepsize h = " << h(ih) << ":\n";
-    mat Y = FE.Evolve(tspan, h(ih), Y0);
+  // create adaptive forward Euler solver object (will reset rtol before each solve)
+  AdaptEuler AE(MyProblem, 0.0, atol, Y0);
+
+  // loop over tolerances
+  cout << "Adaptive Euler test problem, steps and errors vs tolerances:\n";
+  for (int ir=0; ir<rtols.size(); ir++) {
+
+    // update the relative tolerance, and call the solver
+    cout << "  rtol = " << rtols(ir) << endl;
+    AE.rtol = rtols(ir);
+    mat Y = AE.Evolve(tspan, Y0);
 
     // output solution, errors, and overall error
-    double maxabserr = 0.0;
-    double maxrelerr = 0.0;
-    for (size_t i=0; i<Nout; i++) {
-      vec Ytrue = TrueSolution(V,D,Vinv,tspan(i),t0,Y0);
-      mat Yerr = abs(Y.col(i)-Ytrue);
-      double abserr = norm(Yerr,"inf");
-      double relerr = norm(Yerr,"inf") / norm(Ytrue,"inf");
-      cout << "  Y(" << tspan(i) << ") =\t" << trans(Y.col(i));
-      maxabserr = std::max(maxabserr, abserr);
-      maxrelerr = std::max(maxrelerr, relerr);
-    }
+    mat Yerr = abs(Y-Ytrue);
 
-    cout << "Overall abserr = " << maxabserr
-	 << ",  relerr = " << maxrelerr << endl;
+    // output solution, errors, and overall error
+    for (size_t i=0; i<Nout; i++)
+      cout << "    Y(" << tspan(i) << ") =\t" << trans(Y.col(i));
+    cout << "  Overall: "
+         << "\t steps = " << AE.steps
+	       << "\t fails = " << AE.fails
+	       << "\t abserr = " << norm(Yerr,"inf") 
+	       << "\t relerr = " << norm(Yerr/Ytrue,"inf") 
+	       << endl;
+
   }
 
   return 0;

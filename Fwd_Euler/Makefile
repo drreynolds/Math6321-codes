@@ -6,8 +6,8 @@
 
 # compiler & flags
 CXX = g++
-CXXFLAGS = -O -std=c++11
-#CXXFLAGS = -O0 -g -std=c++11
+#CXXFLAGS = -O -std=c++11
+CXXFLAGS = -O0 -g -std=c++11
 LIBS = -larmadillo
 
 # makefile targets
@@ -29,4 +29,4 @@ driver_adapt_euler_system.exe : driver_adapt_euler_system.cpp adapt_euler.cpp
 
 # utilities
 clean :
-	\rm -rf *.txt *.exe *~
+	\rm -rf *.txt *.exe *~ *.dSYM

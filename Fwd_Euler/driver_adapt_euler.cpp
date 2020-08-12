@@ -7,7 +7,6 @@
    Fall 2020  */
 
 #include <iostream>
-#include <iomanip>
 #include "adapt_euler.hpp"
 
 using namespace std;
