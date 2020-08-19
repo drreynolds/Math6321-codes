@@ -51,7 +51,7 @@ int main() {
 
   // tolerances
   vec rtols("1.e-3, 1.e-5, 1.e-7");
-  double atol = 1.e-11;
+  vec atol("1.e-11");
 
   // create adaptive forward Euler stepper object (will reset rtol before each solve)
   AdaptEuler AE(rhs, 0.0, atol, y0);
@@ -60,7 +60,7 @@ int main() {
   cout << "Adaptive Euler test problem, steps and errors vs tolerances:\n";
   for (size_t ir=0; ir<rtols.size(); ir++) {
 
-    // update the relative tolerance, and call the solver
+    // set the relative tolerance, and call the solver
     cout << "  rtol = " << rtols(ir) << endl;
     AE.rtol = rtols(ir);
     mat Y = AE.Evolve(tspan, y0);

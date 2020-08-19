@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
 
   // solver tolerances
   vec rtols("1.e-3, 1.e-5, 1.e-7");
-  double atol = 1.e-13;
+  vec atol(N);  atol.fill(1.e-13);
 
   // initial condition
   vec Y0 = randu(N);

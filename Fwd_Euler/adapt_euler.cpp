@@ -12,10 +12,6 @@
 
 using namespace arma;
 
-inline double temporal_error(vec& f, vec& y, double rtol, double atol) {
-  return(std::max(norm(f,"inf") / ( rtol * norm(y,"inf") + atol ), sqrt(eps(1.0))));
-}
-
 // Adaptive forward Euler class constructor routine
 //
 // Inputs:  frhs_ holds the ODE RHSFunction object, f(t,y)
@@ -25,27 +21,34 @@ inline double temporal_error(vec& f, vec& y, double rtol, double atol) {
 // Sets default values for adaptivity parameters, all of which may
 // be modified by the user after the solver object has been created
 AdaptEuler::AdaptEuler(RHSFunction& frhs_, double rtol_, 
-                       double atol_, arma::vec& y) {
+                       arma::vec& atol_, arma::vec& y) {
   frhs = &frhs_;    // set RHSFunction pointer
-  rtol = rtol_;     // set tolerances
-  atol = atol_;
-  fn = vec(y);           // clone y to create local vectors
+  atol = &atol_;    // set absolute tolerance pointer
+  rtol = rtol_;     // copy relative tolerance
+  fn = vec(y);      // clone y to create local vectors
   y1 = vec(y);
   y2 = vec(y);
   yerr = vec(y);
+  w = vec(y);
 
   maxit = 1e6;      // set default solver parameters
+  bias = 2.0;
   grow = 50.0;
   safe = 0.95;
-  fail = 0.5;
   ONEMSM = 1.0 - sqrt(eps(1.0));
   ONEPSM = 1.0 + sqrt(eps(1.0));
-  alpha = -0.5;
+  p = 2;
   fails = 0;
   steps = 0;
   error_norm = 0.0;
   h = 0.0;
 };
+
+// Error weight vector utility routine
+void AdaptEuler::error_weight(vec& y, vec& w) {
+  for (size_t i=0; i<y.size(); i++) 
+    w(i) = bias / ((*atol)(i) + rtol * std::abs(y(i)));
+}
 
 
 // The adaptive forward Euler time step evolution routine
@@ -71,17 +74,7 @@ mat AdaptEuler::Evolve(vec tspan, vec y) {
   fails = steps = 0;
   double t = tspan(0);
 
-  // check for legal inputs
-  if ((rtol < 0.0) || (atol < 0.0)) {
-    std::cerr << "AdaptEuler::Evolve error: negative tolerance(s), atol = " 
-	      << atol << ",  rtol = " << rtol << std::endl;
-    return Y;
-  }
-  if ((rtol == 0.0) && (atol == 0.0)) {
-    std::cerr << "AdaptEuler::Evolve error: both tolerances cannot equal zero, atol = " 
-	      << atol << ",  rtol = " << rtol << std::endl;
-    return Y;
-  }
+  // check for legal time span
   for (size_t tstep=0; tstep<N; tstep++) {
     if (tspan(tstep+1) < tspan(tstep)) {
       cerr << "AdaptEuler::Evolve Illegal tspan\n";
@@ -89,6 +82,13 @@ mat AdaptEuler::Evolve(vec tspan, vec y) {
     }
   }
 
+  // initialize error weight vector, and check for legal tolerances
+  error_weight(y,w);
+  if (w.min() <= 0.0) {
+    std::cerr << "AdaptEuler::Evolve error: illegal input tolerances\n";
+    return Y;
+  }
+  
   // get ||y'(t0)||
   if (frhs->Evaluate(t, y, fn) != 0) {
     std::cerr << "Evolve error in RHS function\n";
@@ -96,7 +96,8 @@ mat AdaptEuler::Evolve(vec tspan, vec y) {
   }
 
   // estimate initial h value via linearization, safety factor
-  error_norm = temporal_error(fn,y,rtol,atol);
+  error_norm = norm(fn%w,"inf");
+  error_norm = std::max(error_norm, 1.e-8);
   h = safe/error_norm;
 
   // iterate over output times
@@ -131,23 +132,25 @@ mat AdaptEuler::Evolve(vec tspan, vec y) {
       yerr = y2 - y1;
 
       // compute error estimate success factor
-      error_norm = temporal_error(yerr,y2,rtol,atol);
+      error_norm = norm(yerr%w,"inf");
+      error_norm = std::max(error_norm, 1.e-8);
 
-      // if solution has too much error: reduce step size, increment failure counter, and retry
-      if (error_norm > ONEPSM) {
-        h *= fail;
+      // check error
+      if (error_norm < ONEPSM) {  // successful step
+
+        // update current time, solution, error weights, and work counter
+        t += h;
+        y = 2.0*y2 - y1;
+        error_weight(y,w);
+        steps++;
+
+      } else {                    // failed step
         fails++;
-        continue;
       }
 
-      // successful step: update current time, solution, and work counter
-      t += h;
-      y = 2.0*y2 - y1;
-      steps++;
-
       // pick next time step size based on this error estimate
-      double eta = safe*std::pow(error_norm, alpha);    // step size estimate
-      eta = std::min(eta, grow);                        // maximum growth
+      double eta = safe*std::pow(error_norm, -1.0/p);   // step size growth factor
+      eta = std::min(eta, grow);                        // limit maximum growth
       h *= eta;                                         // update h
 
     }
