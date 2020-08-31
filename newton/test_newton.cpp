@@ -6,7 +6,6 @@
 
 #include <iostream>
 #include <iomanip>
-#include "resid.hpp"
 #include "newton.hpp"
 
 using namespace arma;
@@ -65,7 +64,7 @@ int main() {
   if (newt.Solve(y) != 0) {
     std::cerr << "Newton failure\n";
   } else {
-    std::cout << "Newton solution:  " << std::setprecision(12) 
+    std::cout << "Newton solution:  " << std::setprecision(12)
               << y(0) << "  " << y(1) << endl;
     std::cout << "Required " << newt.GetIters() << " iterations\n";
     std::cout << "Final error norm = " << newt.GetErrorNorm() << "\n";
@@ -82,7 +81,7 @@ int main() {
   if (newt.Solve(y) != 0) {
     std::cerr << "Newton failure\n";
   } else {
-    std::cout << "Newton solution:  " << std::setprecision(12) 
+    std::cout << "Newton solution:  " << std::setprecision(12)
               << y(0) << "  " << y(1) << endl;
     std::cout << "Required " << newt.GetIters() << " iterations\n";
     std::cout << "Final error norm = " << newt.GetErrorNorm() << "\n";
