@@ -64,10 +64,11 @@ class NewtonSolver {
   //
   // Inputs:  fres_  -- the ResidualFunction to use
   //          Jres_  -- the JacobianFunction to use
-  //          rtol_  -- the desired relative tolerance
-  //          atol_  -- the desired absolute tolerances
+  //          tol_   -- the desired solution tolerance
+  //          w_     -- the error weight vector to use
   //          maxit_ -- the maximum allowed number of iterations
   //          y      -- template solution vector (only used to clone)
+  //          show_iterates_ -- enable/disable printing iterate info
   NewtonSolver(ResidualFunction& fres_, ResidualJacobian& Jres_,
                const double tol_, const arma::vec& w_, const int maxit_,
                const arma::vec& y, const bool show_iterates_) {
