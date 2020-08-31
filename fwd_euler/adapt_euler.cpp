@@ -2,7 +2,7 @@
 
    Class to perform adaptive time evolution of the IVP
         y' = f(t,y),  t in [t0, Tf],  y(t0) = y0
-   using the forward Euler (explicit Euler) time stepping method. 
+   using the forward Euler (explicit Euler) time stepping method.
 
    D.R. Reynolds
    Math 6321 @ SMU
@@ -17,10 +17,10 @@ using namespace arma;
 // Inputs:  frhs_ holds the ODE RHSFunction object, f(t,y)
 //          rtol holds the desired relative solution accuracy
 //          atol holds the desired absolute solution accuracy
-// 
+//
 // Sets default values for adaptivity parameters, all of which may
 // be modified by the user after the solver object has been created
-AdaptEuler::AdaptEuler(RHSFunction& frhs_, double rtol_, 
+AdaptEuler::AdaptEuler(RHSFunction& frhs_, double rtol_,
                        arma::vec& atol_, arma::vec& y) {
   frhs = &frhs_;    // set RHSFunction pointer
   atol = &atol_;    // set absolute tolerance pointer
@@ -46,7 +46,7 @@ AdaptEuler::AdaptEuler(RHSFunction& frhs_, double rtol_,
 
 // Error weight vector utility routine
 void AdaptEuler::error_weight(vec& y, vec& w) {
-  for (size_t i=0; i<y.size(); i++) 
+  for (size_t i=0; i<y.size(); i++)
     w(i) = bias / ((*atol)(i) + rtol * std::abs(y(i)));
 }
 
@@ -55,11 +55,9 @@ void AdaptEuler::error_weight(vec& y, vec& w) {
 //
 // Inputs:  tspan holds the current time interval, [t0, tf]
 //          y holds the initial condition, y(t0)
-// Outputs: y holds the computed solution, y(tf)
-//
-// The return value is a row vector containing all internal 
-// times at which the solution was computed,
-//               [t0, t1, ..., tN]
+// Outputs: the output matrix holds the computed solution at
+//          all tspan values,
+//            [y(t0), y(t1), ..., y(tN)]
 mat AdaptEuler::Evolve(vec tspan, vec y) {
 
   // store sizes
@@ -88,7 +86,7 @@ mat AdaptEuler::Evolve(vec tspan, vec y) {
     std::cerr << "AdaptEuler::Evolve error: illegal input tolerances\n";
     return Y;
   }
-  
+
   // get ||y'(t0)||
   if (frhs->Evaluate(t, y, fn) != 0) {
     std::cerr << "Evolve error in RHS function\n";
@@ -101,11 +99,11 @@ mat AdaptEuler::Evolve(vec tspan, vec y) {
   h = safe/error_norm;
 
   // iterate over output times
-  for (size_t tstep=0; tstep<N; tstep++) {  
-    
+  for (size_t tstep=0; tstep<N; tstep++) {
+
     // loop over internal steps to reach desired output time
     while ((tspan(tstep+1)-t) > sqrt(eps(tspan(tstep+1)))) {
-      
+
       // bound internal time step
       h = std::min(h,tspan(tstep+1)-t);
 

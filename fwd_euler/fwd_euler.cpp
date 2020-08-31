@@ -18,11 +18,9 @@ using namespace arma;
 // Inputs:  tspan holds the time intervals, [t0, t1, ..., tN]
 //          h holds the desired time step size
 //          y holds the initial condition, y(t0)
-// Outputs: y holds the computed solution at all tspan values,
+// Outputs: the output matrix holds the computed solution at
+//          all tspan values,
 //            [y(t0), y(t1), ..., y(tN)]
-// The return value is a row vector containing all internal
-// times at which the solution was computed,
-//               [t0, t1, ..., tN]
 mat ForwardEulerStepper::Evolve(vec tspan, double h, vec y) {
 
   // store sizes
