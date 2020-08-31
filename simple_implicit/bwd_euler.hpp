@@ -128,9 +128,9 @@ public:
   //          Jrhs_  holds the RHSJacobian to use
   //          y      holds an example solution vector (only used for cloning)
   BackwardEulerStepper(RHSFunction& frhs_, RHSJacobian& Jrhs_, arma::vec& y)
-    : yold(arma::vec(y))   // clone y to create yold
-    , atol(arma::vec(y))   // clone y to create atol
-    , w(arma::vec(y))      // clone y to create w
+    : yold(arma::vec(y))           // clone y to create yold
+    , atol(arma::vec(y))           // clone y to create atol
+    , w(arma::vec(y))              // clone y to create w
     , resid(BEResid(frhs_, yold))  // construct nonlinear residual object
     , residJac(BEResidJac(Jrhs_))  // construct nonlinear Jacobian object
     , rtol(1.0e-7)                 // default rtol value
