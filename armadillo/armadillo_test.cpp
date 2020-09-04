@@ -20,6 +20,7 @@ int main(int argc, char* argv[]) {
 
   // create a row vector of length 5
   arma::rowvec a(5);
+  a.fill(0.0);
 
   // create a row vec with an existing data array
   double dat1[5] = {0.1, 0.2, 0.3, 0.4, 0.5};
@@ -51,7 +52,9 @@ int main(int argc, char* argv[]) {
   if (b.n_elem != 5)
     cerr << "error: incorrect matrix size\n";
   if (b.n_cols != 5)
-    cerr << "error: incorrect matrix size\n";
+    cerr << "error: incorrect matrix columns\n";
+  if (b.n_rows != 1)
+    cerr << "error: incorrect matrix rows\n";
 
   // edit entries of a in both matrix forms, and write each entry of a to screen
   a(0)  = 10.0;
@@ -122,7 +125,7 @@ int main(int argc, char* argv[]) {
   a(4) = 30.0;  // reset to original
 
   // Testing submatrix copy constructor
-  arma::mat B2 = a.submat(0,1,0,3);
+  arma::mat B2 = a.submat(0,1,0,3);  // B2 = a(0:0,1:3)
   cout << "arma::mat B2 = a.submat(0,1,0,3) uses submatrix copy constructor" << endl;
   cout << B2 << endl;
   // update entries of B2
@@ -130,7 +133,7 @@ int main(int argc, char* argv[]) {
   B2(1) = 3.0;
   B2(2) = 2.0;
   // copy B2 back into a using submatrix copy
-  a(0,arma::span(1,3)) = B2;
+  a(0,arma::span(1,3)) = B2;  // a(0,1:3) = B2
   cout << "span copy back into a, should have entries 10 4 3 2 30" << endl;
   cout << a << endl;
   a(1) = 15.0;  // reset to original
@@ -139,23 +142,23 @@ int main(int argc, char* argv[]) {
 
   // Test arithmetic operators
   cout << "Testing vector add, should give 1.1, 2.2, 3.3, 4.4, 5.5\n";
-  b += c;
+  b += c;  // b = b + c
   cout << b << endl;
 
   cout << "Testing scalar add, should give 2, 3, 4, 5, 6\n";
-  c += 1.0;
+  c += 1.0;  // c = c + 1
   cout << c << endl;
 
   cout << "Testing vector subtract, should be 8, 12, 16, 20, 24\n";
-  a -= c;
+  a -= c;  // a = a - c
   cout << a << endl;
 
   cout << "Testing scalar subtract, should be 0, 1, 2, 3, 4\n";
-  c -= 2.0;
+  c -= 2.0;  // c = c - 2
   cout << c << endl;
 
   cout << "Testing vector fill, should all be -1\n";
-  b.fill(-1.0);
+  b.fill(-1.0);  // b = -1*ones(size(b))
   cout << b << endl;
 
   cout << "Testing vector copy, should be 0, 1, 2, 3, 4\n";
@@ -163,20 +166,20 @@ int main(int argc, char* argv[]) {
   cout << a << endl;
 
   cout << "Testing scalar multiply, should be 0, 5, 10, 15, 20\n";
-  c *= 5.0;
+  c *= 5.0;  // c = c * 5
   cout << c << endl;
 
   cout << "Testing deep copy, should be 0, 1, 2, 3, 4\n";
   cout << a << endl;
 
   cout << "Testing vector multiply, should be 0, -1, -2, -3, -4\n";
-  b %= a;
+  b %= a;   // b = b.*a
   cout << b << endl;
 
   cout << "Testing vector divide, should be 0, -2.5, -3.3333, -3.75, -4\n";
-  arma::mat j(c);
+  arma::mat j(c);  // j = c
   b += -1.0;
-  j /= b;
+  j /= b;   // j = j ./ b
   b += 1.0;
   cout << j << endl;
 
@@ -238,8 +241,8 @@ int main(int argc, char* argv[]) {
   cout << "  " << b.max() << endl;
 
   B = arma::mat(2,5);
-  B(0,arma::span(0,4)) = c;
-  B(1,arma::span(0,4)) = a;
+  B(0,arma::span(0,4)) = c;   // B(0,:) = c
+  B(1,arma::span(0,4)) = a;   // B(1,:) = a
   B += 2.0;
 
   cout << "Testing matrix infinity norm, should be 40\n";
@@ -306,17 +309,17 @@ int main(int argc, char* argv[]) {
   cout << "Testing column extraction, should be all zeros:\n";
   cout << Y4 << endl;
 
-  // check linear sum routine
+  // check linear sum 
   arma::mat d = arma::linspace<arma::rowvec>(0.0, 4.0, 5);
   cout << "Testing LinearSum, should be 0.02 1.2 4 23 204:\n";
   arma::mat g = 1.0*d + 2.0*e;
   cout << g << endl;
 
   // check the pow routine
-  d = arma::pow(d,2.0);
+  d = arma::pow(d,2.0);   // d = d.^2
   cout << "Testing pow, should be 0 1 4 9 16:\n";
   cout << d << endl;
-  d = arma::pow(d,0.5);
+  d = arma::pow(d,0.5);   // d = sqrt(d)
   cout << "Testing pow, should be 0 1 2 3 4:\n";
   cout << d << endl;
 
