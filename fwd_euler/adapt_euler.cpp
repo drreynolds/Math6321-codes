@@ -37,7 +37,7 @@ AdaptEuler::AdaptEuler(RHSFunction& frhs_, double rtol_,
   safe = 0.95;
   ONEMSM = 1.0 - sqrt(eps(1.0));
   ONEPSM = 1.0 + sqrt(eps(1.0));
-  p = 2;
+  p = 1;
   fails = 0;
   steps = 0;
   error_norm = 0.0;
@@ -82,10 +82,6 @@ mat AdaptEuler::Evolve(vec tspan, vec y) {
 
   // initialize error weight vector, and check for legal tolerances
   error_weight(y,w);
-  if (w.min() <= 0.0) {
-    std::cerr << "AdaptEuler::Evolve error: illegal input tolerances\n";
-    return Y;
-  }
 
   // get ||y'(t0)||
   if (frhs->Evaluate(t, y, fn) != 0) {
@@ -103,6 +99,12 @@ mat AdaptEuler::Evolve(vec tspan, vec y) {
 
     // loop over internal steps to reach desired output time
     while ((tspan(tstep+1)-t) > sqrt(eps(tspan(tstep+1)))) {
+
+      // enforce maxit
+      if (steps+fails > maxit) {
+        std::cerr << "Exceeded maximum allowed iterations\n";
+        return Y;
+      }
 
       // bound internal time step
       h = std::min(h,tspan(tstep+1)-t);
@@ -147,9 +149,9 @@ mat AdaptEuler::Evolve(vec tspan, vec y) {
       }
 
       // pick next time step size based on this error estimate
-      double eta = safe*std::pow(error_norm, -1.0/p);   // step size growth factor
-      eta = std::min(eta, grow);                        // limit maximum growth
-      h *= eta;                                         // update h
+      double eta = safe*std::pow(error_norm, -1.0/(p+1));   // step size growth factor
+      eta = std::min(eta, grow);                            // limit maximum growth
+      h *= eta;                                             // update h
 
     }
 

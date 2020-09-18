@@ -78,9 +78,6 @@ int main(int argc, char **argv) {
   for (size_t i=0; i<Nout; i++)
     Ytrue.col(i) = TrueSolution(V,D,Vinv,tspan(i),t0,Y0);
 
-  // statistics variables
-  long int totsteps=0, totfails=0;
-
   // create adaptive forward Euler solver object (will reset rtol before each solve)
   AdaptEuler AE(MyProblem, 0.0, atol, Y0);
 
