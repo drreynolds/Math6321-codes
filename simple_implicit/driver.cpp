@@ -107,6 +107,8 @@ int main() {
         printf("    y(%.1f) = %9.6f   |error| = %.2e\n",
                tspan(i), Y(0,i), Yerr(0,i));
       cout << "  Max error = " << Yerr.max() << endl;
+      cout << "  Total internal steps = " << BE.nsteps << endl;
+      cout << "  Total Newton iterations = " << BE.nnewt << endl;
 
     }
     cout << endl;

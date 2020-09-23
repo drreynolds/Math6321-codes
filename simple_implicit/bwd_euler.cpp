@@ -32,12 +32,10 @@ mat BackwardEulerStepper::Evolve(vec& tspan, double h, vec y) {
   mat Y(m, N+1, fill::zeros);
   Y.col(0) = y;
 
-  // reset nsteps counter, current time value
+  // reset nsteps & nnewt counters, current time value
   nsteps = 0;
+  nnewt = 0;
   double t = tspan(0);
-
-  // set floating-point roundoff parameter
-  double ONEMSM = 1.0 - sqrt(eps(1.0));
 
   // check for legal inputs
   if (h <= 0.0) {
@@ -80,8 +78,10 @@ mat BackwardEulerStepper::Evolve(vec& tspan, double h, vec y) {
         return Y;
       }
 
-      // update current time
+      // update current time, nsteps & nnewt counters
       t += hcur;
+      nsteps++;
+      nnewt += newt.GetIters();
 
     }
 

@@ -105,6 +105,9 @@ public:
   // number of steps in last call
   unsigned long int nsteps;
 
+  // total number of Newton iterations in last call
+  unsigned long int nnewt;
+
   // Newton nonlinear solver pointer -- users can directly access/set
   // solver parameters:
   //   newt.tol
@@ -134,6 +137,8 @@ public:
     , resid(BEResid(frhs_, yold))  // construct nonlinear residual object
     , residJac(BEResidJac(Jrhs_))  // construct nonlinear Jacobian object
     , rtol(1.0e-7)                 // default rtol value
+    , nsteps(0)                    // initial counter values
+    , nnewt(0)
     , newt(NewtonSolver(resid, residJac, 1.0, w, 100, y, false))
   {
     // update atol and error weight values
