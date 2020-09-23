@@ -35,9 +35,6 @@ mat ForwardEulerStepper::Evolve(vec tspan, double h, vec y) {
   nsteps = 0;
   double t = tspan(0);
 
-  // set floating-point roundoff parameter
-  double ONEMSM = 1.0 - sqrt(eps(1.0));
-
   // check for legal inputs
   if (h <= 0.0) {
     cerr << "ForwardEulerStepper: Illegal h\n";
@@ -73,8 +70,9 @@ mat ForwardEulerStepper::Evolve(vec tspan, double h, vec y) {
       // update solution with forward Euler step
       y += (hcur*f);
 
-      // update current time
+      // update current time, nsteps counter
       t += hcur;
+      nsteps++;
 
     }
 
