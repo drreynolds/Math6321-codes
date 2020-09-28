@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include "bwd_euler.hpp"
+#include "trapezoidal.hpp"
 #include "fwd_euler.hpp"
 
 using namespace std;
@@ -77,12 +78,16 @@ int main() {
 
   // create time stepper objects
   BackwardEulerStepper BE(rhs, Jac, y0);
+  TrapezoidalStepper T(rhs, Jac, y0);
   ForwardEulerStepper  FE(rhs, y0);
 
   // update Newton solver parameters
   BE.newt.tol = 1.e-3;
   BE.newt.maxit = 20;
   BE.newt.show_iterates = false;
+  T.newt.tol = 1.e-3;
+  T.newt.maxit = 20;
+  T.newt.show_iterates = false;
 
   //------ Backwards Euler tests ------
 
@@ -109,6 +114,37 @@ int main() {
       cout << "  Max error = " << Yerr.max() << endl;
       cout << "  Total internal steps = " << BE.nsteps << endl;
       cout << "  Total Newton iterations = " << BE.nnewt << endl;
+
+    }
+    cout << endl;
+  }
+
+
+  //------ Trapezoidal tests ------
+
+  // loop over lambda values
+  for (int il=0; il<lambdas.n_elem; il++) {
+
+    // set current lambda value into rhs and Jac objects
+    rhs.lambda = lambdas(il);
+    Jac.lambda = lambdas(il);
+
+    // loop over time step sizes
+    for (int ih=0; ih<h.n_elem; ih++) {
+
+      // call stepper
+      cout << "\nRunning trapezoidal with stepsize h = " << h(ih)
+	   << ", lambda = " << lambdas(il) << ":\n";
+      mat Y = T.Evolve(tspan, h(ih), y0);
+
+      // output solution, errors, and overall error
+      mat Yerr = abs(Y-Ytrue);
+      for (size_t i=0; i<Nout; i++)
+        printf("    y(%.1f) = %9.6f   |error| = %.2e\n",
+               tspan(i), Y(0,i), Yerr(0,i));
+      cout << "  Max error = " << Yerr.max() << endl;
+      cout << "  Total internal steps = " << T.nsteps << endl;
+      cout << "  Total Newton iterations = " << T.nnewt << endl;
 
     }
     cout << endl;

@@ -14,7 +14,7 @@ LIBS = -larmadillo
 # executable targets
 all : driver.exe
 
-driver.exe : driver.cpp bwd_euler.cpp ../fwd_euler/fwd_euler.cpp
+driver.exe : driver.cpp bwd_euler.cpp trapezoidal.cpp ../fwd_euler/fwd_euler.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBS) $(INCS)
 
 
