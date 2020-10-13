@@ -1,5 +1,5 @@
-/* Main routine to test the generic IRK solver method on the 
-   scalar-valued ODE problem 
+/* Main routine to test the generic IRK solver method on the
+   scalar-valued ODE problem
      y' = lambda*y + (1-lambda)*cos(t) - (1+lambda)*sin(t), t in [0,5],
      y(0) = 1.
 
@@ -45,7 +45,7 @@ vec ytrue(const double t) {
 };
 
 // Convenience function for running tests on a method
-void RunTestIRK(IRKStepper& IRK, MyRHS& rhs, MyJac& Jac, vec& lambdas, 
+void RunTestIRK(IRKStepper& IRK, MyRHS& rhs, MyJac& Jac, vec& lambdas,
                 vec& h, vec& e, vec& tspan, vec& y0, mat& Ytrue) {
 
   // update Newton solver parameters
@@ -70,7 +70,8 @@ void RunTestIRK(IRKStepper& IRK, MyRHS& rhs, MyJac& Jac, vec& lambdas,
       // output solution, errors, and overall error
       mat Yerr = abs(Y-Ytrue);
       e(ih) = Yerr.max();
-      cout << "    h = 1/" << ih+1 << "  steps = " << IRK.nsteps << "  NIters = " << IRK.nnewt << "  max err = " << e(ih);
+      cout << "    h = 1/" << ih+1 << "  steps = " << IRK.nsteps
+           << "  NIters = " << IRK.nnewt << "  max err = " << e(ih);
       if (ih > 0) {
         cout << "  conv rate = " << log(e(ih)/e(ih-1))/log(h(ih)/h(ih-1)) << endl;
       } else {
@@ -87,7 +88,7 @@ void RunTestIRK(IRKStepper& IRK, MyRHS& rhs, MyJac& Jac, vec& lambdas,
 // main routine
 int main() {
 
-  // time steps to try 
+  // time steps to try
   vec h(7);
   for (size_t i=0; i<7; i++)  h(i) = 1.0/(i+1);
 
@@ -121,14 +122,14 @@ int main() {
 
   // create IRK stepper object
   mat RIIA2_A(2,2);
-  vec RIIA2_b(2), RIIA2_c(2); 
+  vec RIIA2_b(2), RIIA2_c(2);
   RIIA2_A(0,0) = 5.0/12.0;
   RIIA2_A(0,1) = -1.0/12.0;
   RIIA2_A(1,0) = 9.0/12.0;
   RIIA2_A(1,1) = 3.0/12.0;
-  RIIA2_b(0) = 3.0/4.0; 
+  RIIA2_b(0) = 3.0/4.0;
   RIIA2_b(1) = 1.0/4.0;
-  RIIA2_c(0) = 1.0/3.0; 
+  RIIA2_c(0) = 1.0/3.0;
   RIIA2_c(1) = 1.0;
   IRKStepper RIIA2(rhs, Jac, y0, RIIA2_A, RIIA2_b, RIIA2_c);
 
@@ -278,7 +279,7 @@ int main() {
   GL6_A(1,2) = -0.020300102293239581308124404430781;
   GL6_A(1,3) =  0.010363156240246421640614877198502;
   GL6_A(1,4) = -0.0048871929280376802268550750181669;
-  GL6_A(1,5) =  0.001355561055485051944941864725486; 
+  GL6_A(1,5) =  0.001355561055485051944941864725486;
   GL6_A(2,0) =  0.082247922612843859526233540856659;
   GL6_A(2,1) =  0.19603216233324501065540377853111;
   GL6_A(2,2) =  0.11697848364317276194496135254516;
@@ -290,18 +291,18 @@ int main() {
   GL6_A(3,2) =  0.25443949503200161992267908075603;
   GL6_A(3,3) =  0.11697848364317276194496135254516;
   GL6_A(3,4) = -0.015651375809175699331166122736864;
-  GL6_A(3,5) =  0.00341432357674130217775889704455; 
-  GL6_A(4,0) =  0.084306685134100109759050573175723; 
-  GL6_A(4,1) =  0.18526797945210699155109273081241; 
-  GL6_A(4,2) =  0.22359381104609910224930782789182; 
-  GL6_A(4,3) =  0.2542570695795851051980471095211; 
-  GL6_A(4,4) =  0.090190393262034655662118827897123; 
-  GL6_A(4,5) = -0.007011245240793695266831302387034; 
-  GL6_A(5,0) =  0.086475026360849929529996358578351; 
-  GL6_A(5,1) =  0.17752635320896999641403691987814; 
-  GL6_A(5,2) =  0.239625825335829040108171596795; 
-  GL6_A(5,3) =  0.22463191657986776204878263167818; 
-  GL6_A(5,4) =  0.19514451252126673596812908480852; 
+  GL6_A(3,5) =  0.00341432357674130217775889704455;
+  GL6_A(4,0) =  0.084306685134100109759050573175723;
+  GL6_A(4,1) =  0.18526797945210699155109273081241;
+  GL6_A(4,2) =  0.22359381104609910224930782789182;
+  GL6_A(4,3) =  0.2542570695795851051980471095211;
+  GL6_A(4,4) =  0.090190393262034655662118827897123;
+  GL6_A(4,5) = -0.007011245240793695266831302387034;
+  GL6_A(5,0) =  0.086475026360849929529996358578351;
+  GL6_A(5,1) =  0.17752635320896999641403691987814;
+  GL6_A(5,2) =  0.239625825335829040108171596795;
+  GL6_A(5,3) =  0.22463191657986776204878263167818;
+  GL6_A(5,4) =  0.19514451252126673596812908480852;
   GL6_A(5,5) =  0.042831123094792580851996218950605;
   GL6_b(0) = 0.085662246189585161703992437901209;
   GL6_b(1) = 0.18038078652406931132423765579425;
