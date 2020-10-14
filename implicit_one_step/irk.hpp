@@ -13,8 +13,8 @@
 #include "newton.hpp"
 
 
-// IRK residual function class -- implements an implicit 
-// Runge-Kutta-specific ResidualFunction to be supplied 
+// IRK residual function class -- implements an implicit
+// Runge-Kutta-specific ResidualFunction to be supplied
 // to the Newton solver.
 class IRKResid: public ResidualFunction {
 public:
@@ -32,7 +32,7 @@ public:
   size_t m;           // size of IVP system
 
   // constructor (sets RHS function, old solution vector pointers, Butcher table pointers)
-  IRKResid(RHSFunction& frhs_, arma::vec& yold_, 
+  IRKResid(RHSFunction& frhs_, arma::vec& yold_,
            arma::mat& A_, arma::vec& c_) {
     frhs = &frhs_;  yold = &yold_;    // set pointers to inputs
     A = &A_;  c = &c_;
@@ -48,8 +48,8 @@ public:
 
 
 
-// IRK residual Jacobian function class -- implements 
-// an implicit Runge-Kutta-specific ResidualJacobian to be 
+// IRK residual Jacobian function class -- implements
+// an implicit Runge-Kutta-specific ResidualJacobian to be
 // supplied to the Newton solver.
 class IRKResidJac: public ResidualJacobian {
 public:
@@ -66,10 +66,10 @@ public:
   size_t m;                // size of IVP system
 
   // constructor (sets RHS Jacobian function pointer)
-  IRKResidJac(RHSJacobian& Jrhs_, arma::vec& yold_, 
-              arma::mat& A_, arma::vec& c_) { 
+  IRKResidJac(RHSJacobian& Jrhs_, arma::vec& yold_,
+              arma::mat& A_, arma::vec& c_) {
     // set pointers to inputs
-    Jrhs = &Jrhs_;        
+    Jrhs = &Jrhs_;
     A = &A_;  c = &c_;
     // store problem sizes
     m = yold_.n_elem;
@@ -141,24 +141,24 @@ public:
   //          Jrhs   holds the RHSJacobian to use
   //          y      holds an example solution vector (only used for cloning)
   //          A,b,c  Butcher table to use
-  IRKStepper(RHSFunction& frhs_, RHSJacobian& Jrhs, arma::vec& y, 
+  IRKStepper(RHSFunction& frhs_, RHSJacobian& Jrhs, arma::vec& y,
              arma::mat& A_, arma::vec& b_, arma::vec&c_)
-  : s(c_.n_elem)                 // set stage count, problem size
+  : s(c_.n_elem)                      // set stage count, problem size
   , m(y.n_elem)
   , frhs(&frhs_)
-  , yold(y.n_elem)               // create local vectors
-  , atol(y.n_elem)
-  , w(c_.n_elem*y.n_elem)
-  , z(c_.n_elem*y.n_elem)
-  , zj(y.n_elem)
-  , kj(y.n_elem)
-  , A(A_)                        // copy Butcher table
+  , yold(arma::vec(y.n_elem))         // create local vectors
+  , atol(arma::vec(y.n_elem))
+  , w(arma::vec(c_.n_elem*y.n_elem))
+  , z(arma::vec(c_.n_elem*y.n_elem))
+  , zj(arma::vec(y.n_elem))
+  , kj(arma::vec(y.n_elem))
+  , A(A_)                             // copy Butcher table
   , b(b_)
   , c(c_)
-  , r(IRKResid(frhs_,yold,A,c))   // construct nonlin. resid.
+  , r(IRKResid(frhs_,yold,A,c))       // construct nonlin. resid.
   , rJac(IRKResidJac(Jrhs,yold,A,c))  // construct nonlin. Jac.
-  , rtol(1.0e-7)                 // default rtol value
-  , nsteps(0)                    // initial counter values
+  , rtol(1.0e-7)                      // default rtol value
+  , nsteps(0)                         // initial counter values
   , nnewt(0)
   , newt(NewtonSolver(r, rJac, 1.0, w, 100, z, false))
   {
