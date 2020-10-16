@@ -95,6 +95,16 @@ class NewtonSolver {
     error_norm = 0.0;
   }
 
+  // Utility routine to ensure that the Newton solver object has the current
+  // fres, Jres and w pointers
+  void UpdatePointers(ResidualFunction& fres_,
+                      ResidualJacobian& Jres_,
+                      const arma::vec& w_) {
+    fres = &fres_;
+    Jres = &Jres_;
+    w = &w_;
+  };
+
   // Error-weight max norm utility routine for convergence tests
   //   max_i | w_i*e_i |
   // where w is the error-weight vector stored in the NewtonSolver
