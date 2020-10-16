@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include "irk.hpp"
+#include "dirk.hpp"
 
 using namespace std;
 using namespace arma;
@@ -84,6 +85,46 @@ void RunTestIRK(IRKStepper& IRK, MyRHS& rhs, MyJac& Jac, vec& lambdas,
 
 };
 
+// Convenience function for running tests on a method
+void RunTestDIRK(DIRKStepper& DIRK, MyRHS& rhs, MyJac& Jac, vec& lambdas,
+                vec& h, vec& e, vec& tspan, vec& y0, mat& Ytrue) {
+
+  // update Newton solver parameters
+  DIRK.newt.tol = 1e-3;
+  DIRK.newt.maxit = 20;
+  DIRK.newt.show_iterates = false;
+
+  // loop over lambda values
+  for (int il=0; il<lambdas.n_elem; il++) {
+
+    // set current lambda value into rhs and Jac objects
+    cout << "  lambda = " << lambdas(il) << ":\n";
+    rhs.lambda = lambdas(il);
+    Jac.lambda = lambdas(il);
+
+    // loop over time step sizes
+    for (int ih=0; ih<h.n_elem; ih++) {
+
+      // call stepper
+      mat Y = DIRK.Evolve(tspan, h(ih), y0);
+
+      // output solution, errors, and overall error
+      mat Yerr = abs(Y-Ytrue);
+      e(ih) = Yerr.max();
+      cout << "    h = 1/" << ih+1 << "  steps = " << DIRK.nsteps
+           << "  NIters = " << DIRK.nnewt << "  max err = " << e(ih);
+      if (ih > 0) {
+        cout << "  conv rate = " << log(e(ih)/e(ih-1))/log(h(ih)/h(ih-1)) << endl;
+      } else {
+        cout << endl;
+      }
+
+    }
+    cout << endl;
+  }
+
+};
+
 
 // main routine
 int main() {
@@ -140,7 +181,7 @@ int main() {
   //////// Alexander 3 stage DIRK method -- O(h^3) accurate ////////
   cout << "\nAlexander's 3-stage DIRK method -- O(h^3):\n";
 
-  // create IRK stepper object (replace with DIRK)
+  // create IRK stepper object
   double alpha = 0.43586652150845906;
   double tau2 = 0.5*(1.0+alpha);
   mat Alex3_A(3,3);
@@ -157,16 +198,16 @@ int main() {
   Alex3_c(0) = alpha;
   Alex3_c(1) = tau2;
   Alex3_c(2) = 1.0;
-  IRKStepper Alex3(rhs, Jac, y0, Alex3_A, Alex3_b, Alex3_c);
+  DIRKStepper Alex3(rhs, Jac, y0, Alex3_A, Alex3_b, Alex3_c);
 
   // run tests
-  RunTestIRK(Alex3, rhs, Jac, lambdas, h, e, tspan, y0, Ytrue);
+  RunTestDIRK(Alex3, rhs, Jac, lambdas, h, e, tspan, y0, Ytrue);
 
 
   //////// Crouzeix & Raviart 3 stage DIRK method -- O(h^4) accurate ////////
   cout << "\nCrouzeix & Raviart 3-stage DIRK method -- O(h^4):\n";
 
-  // create IRK stepper object (replace with DIRK)
+  // create IRK stepper object
   double gamma = 1.0/sqrt(3.0)*cos(M_PI/18.0) + 0.5;
   double delta = 1.0/(6.0*(2.0*gamma-1.0)*(2.0*gamma-1.0));
   mat CR3_A(3,3);
@@ -183,10 +224,10 @@ int main() {
   CR3_c(0) = gamma;
   CR3_c(1) = 0.5;
   CR3_c(2) = 1.0-gamma;
-  IRKStepper CR3(rhs, Jac, y0, CR3_A, CR3_b, CR3_c);
+  DIRKStepper CR3(rhs, Jac, y0, CR3_A, CR3_b, CR3_c);
 
   // run tests
-  RunTestIRK(CR3, rhs, Jac, lambdas, h, e, tspan, y0, Ytrue);
+  RunTestDIRK(CR3, rhs, Jac, lambdas, h, e, tspan, y0, Ytrue);
 
 
   //////// Gauss-Legendre 2 stage method -- O(h^4) accurate ////////

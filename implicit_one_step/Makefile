@@ -14,7 +14,7 @@ LIBS = -larmadillo
 # executable targets
 all : driver.exe
 
-driver.exe : driver.cpp irk.cpp
+driver.exe : driver.cpp irk.cpp dirk.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBS) $(INCS)
 
 
