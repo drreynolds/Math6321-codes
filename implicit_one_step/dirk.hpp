@@ -13,8 +13,8 @@
 #include "newton.hpp"
 
 
-// DIRK residual function class -- implements an implicit 
-// Runge-Kutta-specific ResidualFunction to be supplied 
+// DIRK residual function class -- implements an implicit
+// Runge-Kutta-specific ResidualFunction to be supplied
 // to the Newton solver.
 class DIRKResid: public ResidualFunction {
 public:
@@ -31,11 +31,11 @@ public:
   int cur_stage;      // current stage index
 
   // constructor (sets RHS function, old solution vector pointers, Butcher table pointers)
-  DIRKResid(RHSFunction& frhs_, arma::vec& y, 
+  DIRKResid(RHSFunction& frhs_, arma::vec& y,
             arma::mat& A_, arma::vec& c_) {
     frhs = &frhs_;
-    a = arma::vec(m);
-    A = A_;  
+    a = arma::vec(y.n_elem);
+    A = A_;
     c = c_;
     s = c_.n_elem;
     m = y.n_elem;
@@ -50,8 +50,8 @@ public:
 
 
 
-// DIRK residual Jacobian function class -- implements 
-// an implicit Runge-Kutta-specific ResidualJacobian to be 
+// DIRK residual Jacobian function class -- implements
+// an implicit Runge-Kutta-specific ResidualJacobian to be
 // supplied to the Newton solver.
 class DIRKResidJac: public ResidualJacobian {
 public:
@@ -67,10 +67,10 @@ public:
   int cur_stage;           // current stage index
 
   // constructor (sets RHS Jacobian function pointer)
-  DIRKResidJac(RHSJacobian& Jrhs_, arma::vec& y, 
-               arma::mat& A_, arma::vec& c_) { 
-    Jrhs = &Jrhs_;        
-    A = A_;  
+  DIRKResidJac(RHSJacobian& Jrhs_, arma::vec& y,
+               arma::mat& A_, arma::vec& c_) {
+    Jrhs = &Jrhs_;
+    A = A_;
     c = c_;
     s = c_.n_elem;
     m = y.n_elem;
@@ -140,7 +140,7 @@ public:
   //          Jrhs   holds the RHSJacobian to use
   //          y      holds an example solution vector (only used for cloning)
   //          A,b,c  Butcher table to use
-  DIRKStepper(RHSFunction& frhs_, RHSJacobian& Jrhs, arma::vec& y, 
+  DIRKStepper(RHSFunction& frhs_, RHSJacobian& Jrhs, arma::vec& y,
               arma::mat& A_, arma::vec& b_, arma::vec&c_)
   : s(c_.n_elem)                       // set stage count, problem size
   , m(y.n_elem)
