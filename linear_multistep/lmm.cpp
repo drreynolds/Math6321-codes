@@ -2,9 +2,8 @@
 
    Class to perform time evolution of the IVP
         y' = f(t,y),  t in [t0, Tf],  y(t0) = y0
-   using a linear multistep time stepping method.  Although this
-   class is written to directly support implicit LMM, it will work
-   equally well for explicit LMM.
+   using either an explicit or implicit linear multistep 
+   time stepping method.
 
    D.R. Reynolds
    Math 6321 @ SMU
@@ -40,6 +39,9 @@ int LMMResid::Evaluate(vec& y, vec& resid) {
   resid += (a(0)*y);              // resid = a_0*y - h*b_0*f(t+h,y)
   for (int j=1; j<a.n_elem; j++)  // (add remaining terms in sum)
     resid += ( a(j) * yold->col(j-1) - (h*b(j)) * fold->col(j-1) );
+
+  // if explicit:  ynew = 1/a(0)*[ -sum[a_j y_{n-j}] + h*sum[b_j*f_{n-j}] ]
+  //                    = -1/a(0)*resid
 
   // return success
   return 0;
