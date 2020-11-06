@@ -143,45 +143,49 @@ int main(int argc, char **argv) {
   // shooting method for various Newton tolerances, so just use one
   double newt_tol = 1.0e-3;
 
-  // set tight IVP tolerances
-  double rkf_rtol = 1.e-10;
-  vec rkf_atol(2);  rkf_atol.fill(1.e-13);
+  // loop over various inner IVP tolerances
+  vec rkf_rtol("1.e-5, 1.e-8, 1.e-11");
+  for (int i=0; i<rkf_rtol.n_elem; i++) {
 
-  // output problem information
-  cout << "\nShooting method for BVP with lambda = " << lambda << ":\n"
-       << "  newt_tol = " << newt_tol
-       << ",  rkf_rtol = " << rkf_rtol
-       << ",  rkf_atol  = " << rkf_atol(0) << "\n";
+    // set tight IVP tolerances
+    vec rkf_atol(2);  rkf_atol.fill(rkf_rtol(i)/1000);
 
-  // create IVP solvers, residual and Jacobian objects
-  IVPRhs    ivp_rhs(bvp);
-  IVPJacRhs jac_ivp_rhs(bvp);
-  vec y(2);    // empty vector of appropriate size
-  AdaptRKF ivp_rkf(ivp_rhs, rkf_rtol, rkf_atol, y);
-  AdaptRKF jac_ivp_rkf(jac_ivp_rhs, rkf_rtol, rkf_atol, y);
-  ShootingResid resid(ivp_rkf, bvp);
-  ShootingJac jac(jac_ivp_rkf, bvp);
+    // output problem information
+    cout << "\nShooting method for BVP with lambda = " << lambda << ":\n"
+         << "  newt_tol = " << newt_tol
+         << ",  rkf_rtol = " << rkf_rtol(i)
+         << ",  rkf_atol  = " << rkf_atol(0) << "\n";
 
-  // initial guess
-  vec c(2);
-  c(0) = bvp.ua;
-  c(1) = 0.0;
+    // create IVP solvers, residual and Jacobian objects
+    IVPRhs    ivp_rhs(bvp);
+    IVPJacRhs jac_ivp_rhs(bvp);
+    vec y(2);    // empty vector of appropriate size
+    AdaptRKF ivp_rkf(ivp_rhs, rkf_rtol(i), rkf_atol, y);
+    AdaptRKF jac_ivp_rkf(jac_ivp_rhs, rkf_rtol(i), rkf_atol, y);
+    ShootingResid resid(ivp_rkf, bvp);
+    ShootingJac jac(jac_ivp_rkf, bvp);
 
-  // create Newton solver object, call solver, output solution
-  vec w(2);  w.fill(1.0);   // set trivial error weight vector
-  NewtonSolver newt(resid, jac, newt_tol, w, 20, c, true);
-  cout << "  Calling Newton solver:\n";
-  if (newt.Solve(c) != 0)
-    cerr << "  Warning: Newton convergence failure\n";
+    // initial guess
+    vec c(2);
+    c(0) = bvp.ua;
+    c(1) = 0.0;
 
-  // output final c value, re-run IVP to generate BVP solution
-  cout << "  Newton solution: " << setprecision(16) << trans(c);
-  mat Y = ivp_rkf.Evolve(tspan, c);
+    // create Newton solver object, call solver, output solution
+    vec w(2);  w.fill(1.0);   // set trivial error weight vector
+    NewtonSolver newt(resid, jac, newt_tol, w, 20, c, true);
+    cout << "  Calling Newton solver:\n";
+    if (newt.Solve(c) != 0)
+      cerr << "  Warning: Newton convergence failure\n";
 
-  // output maximum error
-  vec uerr = abs(trans(Y.row(0))-utrue);
-  cout << "  Maximum BVP solution error = " << std::setprecision(4)
-     << uerr.max() << "\n";
+    // output final c value, re-run IVP to generate BVP solution
+    cout << "  Newton solution: " << setprecision(16) << trans(c);
+    mat Y = ivp_rkf.Evolve(tspan, c);
 
+    // output maximum error
+    vec uerr = abs(trans(Y.row(0))-utrue);
+    cout << "  Maximum BVP solution error = " << std::setprecision(4)
+       << uerr.max() << "\n";
+  }
+  
   return 0;
 }
