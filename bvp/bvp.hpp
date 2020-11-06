@@ -19,16 +19,12 @@
    Math 6321 @ SMU
    Fall 2020  */
 
-#include <iostream>
-#include <iomanip>
+#define _USE_MATH_DEFINES
+#include <cmath>
 
-#define PI 3.141592653589793
-
-
-// Define class for this BVP:
-// defines f(t,u,u'), f_u(t,u,u') and f_u'(t,u,u') functions,
-// a function for the true solution, as well as auxiliary
-// functions for use inside of these routines.
+// Define class for this BVP
+//   Note that setup() must be called with the current value of lambda 
+//   _before_ any class functions or other internal parameters are accessed.
 class BVP {
 public:
   double a;
@@ -36,7 +32,7 @@ public:
   double lambda;
   double ua;
   double ub;
-  void setup(double lam) {
+  BVP(double lam) {   // constructor
     a = 0.0;
     b = 1.0;
     lambda = lam;
@@ -45,7 +41,7 @@ public:
   }
   double r(double t) {
     return ((4.0*lambda*lambda*exp(lambda*(1.0-t))/(1.0+2.0*exp(lambda)))
-            + (lambda*lambda - PI*PI)*cos(PI*t) + 2.0*lambda*PI*sin(PI*t));
+            + (lambda*lambda - M_PI*M_PI)*cos(M_PI*t) + 2.0*lambda*M_PI*sin(M_PI*t));
   }
   double p(double t) {
     return (2.0*lambda);
@@ -55,6 +51,6 @@ public:
   }
   double utrue(double t) {
     return ( exp(lambda)/(1.0+2.0*exp(lambda))*(exp(lambda*(t-1.0)) + exp(-lambda*t))
-             + cos(PI*t) );
+             + cos(M_PI*t) );
   }
 };

@@ -36,34 +36,26 @@ using namespace arma;
 class IVPRhs: public RHSFunction {
   BVP *bvp;               // BVP object
 public:
-  IVPRhs(BVPRhs bvp_) {   // constructor
+  IVPRhs(BVP& bvp_) {      // constructor
     bvp = &bvp_;
   }
   int Evaluate(double t, vec& y, vec& f) {
-    f[0] = y[1];                                 // u'
-    f[1] = bvp->f_Eval(t, y[0], y[1]);           // u''
-    f[2] = y[3];                                 // eta'
-    f[3] = bvp->f_u_Eval(t, y[0], y[1])*y[2]     // eta''
-         + bvp->f_du_Eval(t, y[0], y[1])*y[3];
+    f(0) = y(1);
+    f(1) = bvp->p(t)*y(1) + bvp->q(t)*y(0) + bvp->r(t);
     return 0;
   }
 };
 
-
-// Define IVP right-hand side function class:
-// evolves y = {u, u', eta, eta'}
-class IVPRhs: public RHSFunction {
+// Define auxiliary IVP right-hand side function class
+class IVPJacRhs: public RHSFunction {
   BVP *bvp;               // BVP object
 public:
-  IVPRhs(BVPRhs bvp_) {   // constructor
+  IVPJacRhs(BVP& bvp_) {   // constructor
     bvp = &bvp_;
   }
-  int Evaluate(double t, vector<double>& y, vector<double>& f) {
-    f[0] = y[1];                                 // u'
-    f[1] = bvp->f_Eval(t, y[0], y[1]);           // u''
-    f[2] = y[3];                                 // eta'
-    f[3] = bvp->f_u_Eval(t, y[0], y[1])*y[2]     // eta''
-         + bvp->f_du_Eval(t, y[0], y[1])*y[3];
+  int Evaluate(double t, vec& y, vec& f) {
+    f(0) = y(1);
+    f(1) = bvp->p(t)*y(1) + bvp->q(t)*y(0);
     return 0;
   }
 };
@@ -73,27 +65,21 @@ public:
 //    residual function class -- instantiates a ResidualFunction
 class ShootingResid: public ResidualFunction {
 public:
-  AdaptRKF *RKF;               // Runge-Kutta-Fehlberg IVP solver
-  vector<double> tspan;        // BVP solution interval
-  vector<double> a, b, c, g;   // Boundary condition parameters
-  ShootingResid(AdaptRKF& RKF_,
-                vector<double> tspan_,
-                vector<double> a_,
-                vector<double> b_,
-                vector<double> c_,
-                vector<double> g_) {   // constructor
-    RKF = &RKF_;  tspan = tspan_;
-    a = a_;  b = b_;  c = c_;  g = g_;
+  BVP *bvp;                    // BVP object
+  AdaptRKF *rkf;               // Runge-Kutta-Fehlberg IVP solver
+  ShootingResid(AdaptRKF& rkf_, BVP& bvp_) {   // constructor
+    rkf = &rkf_;  bvp = &bvp_;
   }
-  int Evaluate(vector<double>& s,    // evaluate the residual, r(s)
-               vector<double>& r) {
+  int Evaluate(vec& c, vec& r) {
     // evolve the IVP
-    vector<double> y = {a[1]*s[0] - c[1]*g[0],
-                        a[0]*s[0] - c[0]*g[0],
-                        a[1], a[0]};
-    vector<double> tvals = RKF->Evolve(tspan, y);
+    vec y = c;
+    vec tspan(2);
+    tspan(0) = bvp->a;
+    tspan(1) = bvp->b;
+    mat Y = rkf->Evolve(tspan, y);
     // evaluate the nonlinear residual
-    r[0] = b[0]*y[0] + b[1]*y[1] - g[1];
+    r(0) = c(0) - bvp->ua;     // left boundary condition
+    r(1) = Y(0,1) - bvp->ub;   // right boundary condition
     return 0;
   }
 };
@@ -101,107 +87,101 @@ public:
 //    residual Jacobian class -- instantiates a ResidualJacobian
 class ShootingJac: public ResidualJacobian {
 public:
-  AdaptRKF *RKF;                // Runge-Kutta-Fehlberg IVP solver
-  vector<double> tspan;         // BVP solution interval
-  vector<double> a, b, c, g;    // Boundary condition parameters
-  ShootingJac(AdaptRKF& RKF_,
-              vector<double> tspan_,
-              vector<double> a_,
-              vector<double> b_,
-              vector<double> c_,
-              vector<double> g_) {   // constructor
-    RKF = &RKF_;  tspan = tspan_;
-    a = a_;  b = b_;  c = c_;  g = g_;
+  BVP *bvp;                     // BVP object
+  AdaptRKF *rkf;                // Runge-Kutta-Fehlberg IVP solver
+  mat Jsaved;                   // stored Jacobian
+  ShootingJac(AdaptRKF& rkf_, BVP& bvp_) {   // constructor
+    rkf = &rkf_;  bvp = &bvp_;
+
+    // note that since the problem is linear in y, the residual 
+    // Jacobian is fixed.  We thus perform all Jacobian-related
+    // solves now, and store the results for later.
+    Jsaved = mat(2,2);
+    Jsaved(0,0) = 1.0;
+    Jsaved(0,1) = 0.0;
+    vec tspan(2);
+    tspan(0) = bvp->a;
+    tspan(1) = bvp->b;
+    vec y(2);
+    y(0) = 1.0;  y(1) = 0.0;
+    mat Y = rkf->Evolve(tspan, y);
+    Jsaved(1,0) = Y(0,1);
+    y(0) = 0.0;  y(1) = 1.0;
+    Y = rkf->Evolve(tspan, y);
+    Jsaved(1,1) = Y(0,1);
   }
-  int Evaluate(vector<double>& s, Matrix& J) {
-    J = 0.0;
-    // evolve the IVP
-    vector<double> y = {a[1]*s[0] - c[1]*g[0],
-                        a[0]*s[0] - c[0]*g[0],
-                        a[1], a[0]};
-    vector<double> tvals = RKF->Evolve(tspan, y);
-    // evaluate the Jacobian
-    J(0,0) = b[0]*y[2] + b[1]*y[3];
+  int Evaluate(vec& c, mat& J) {
+    J = Jsaved;
     return 0;
   }
 };
 
 
-
 // main routine
 int main(int argc, char **argv) {
 
-  // define BVP
-  BVPRhs bvp;
-  vector<double> tspan = {0.0, 2.0*M_PI};
-  vector<double> bc_a = {2.0, -1.0};
-  vector<double> bc_b = {1.0, -1.0};
-  vector<double> bc_g = {-2.0, 5.0};
-  vector<double> bc_c(2);
-  if (bc_a[0] != 0.0) {
-    bc_c = {1.0, (bc_a[1] - 1.0)/bc_a[0]};
-  } else {
-    bc_c = {(bc_a[0] - 1.0)/bc_a[1], 1.0};
-  }
-
-  // set shooting method tolerances from command line
-  double newt_rtol = 1.0e-3;
+  // get lambda from the command line, otherwise set to -10
+  double lambda;
   if (argc > 1)
-    newt_rtol = atof(argv[1]);
-  double newt_atol = newt_rtol / 100;
-  double rkf_rtol = newt_rtol / 20;
-  double rkf_atol = newt_atol / 20;
+    lambda = atof(argv[1]);
+  if (lambda >= 0.0)
+    lambda = -10.0;
 
-  std::cout << "\nShooting method for BVP:\n";
-  std::cout << "  newt_rtol = " << newt_rtol << "\n";
-  std::cout << "  newt_atol = " << newt_atol << "\n";
-  std::cout << "  rkf_rtol  = " << rkf_rtol << "\n";
-  std::cout << "  rkf_atol  = " << rkf_atol << "\n";
+  // set final solution resolution
+  int N = 1001;
 
+  // define BVP object
+  BVP bvp(lambda);
+  
+  // compute/store analytical solution
+  vec tspan = linspace(bvp.a, bvp.b, N);
+  vec utrue(N);
+  for (int i=0; i<N; i++)
+    utrue(i) = bvp.utrue(tspan(i));
 
-  // create IVP, IVP solver, residual and Jacobian objects
-  IVPRhs ivp(bvp);
-  vector<double> y(4);    // empty vector of appropriate size
-  AdaptRKF rkf(ivp, rkf_rtol, rkf_atol, y);
-  ShootingResid resid(rkf, tspan, bc_a, bc_b, bc_c, bc_g);
-  ShootingJac jac(rkf, tspan, bc_a, bc_b, bc_c, bc_g);
+  // since h(c) is linear, then there's no point in running the 
+  // shooting method for various Newton tolerances, so just use one
+  double newt_tol = 1.0e-3;
+
+  // set tight IVP tolerances
+  double rkf_rtol = 1.e-10;
+  vec rkf_atol(2);  rkf_atol.fill(1.e-13);
+
+  // output problem information
+  cout << "\nShooting method for BVP with lambda = " << lambda << ":\n"
+       << "  newt_tol = " << newt_tol
+       << ",  rkf_rtol = " << rkf_rtol
+       << ",  rkf_atol  = " << rkf_atol(0) << "\n";
+
+  // create IVP solvers, residual and Jacobian objects
+  IVPRhs    ivp_rhs(bvp);
+  IVPJacRhs jac_ivp_rhs(bvp);
+  vec y(2);    // empty vector of appropriate size
+  AdaptRKF ivp_rkf(ivp_rhs, rkf_rtol, rkf_atol, y);
+  AdaptRKF jac_ivp_rkf(jac_ivp_rhs, rkf_rtol, rkf_atol, y);
+  ShootingResid resid(ivp_rkf, bvp);
+  ShootingJac jac(jac_ivp_rkf, bvp);
 
   // initial guess
-  vector<double> s = {0.0};
+  vec c(2);
+  c(0) = bvp.ua;
+  c(1) = 0.0;
 
   // create Newton solver object, call solver, output solution
-  NewtonSolver newt(resid, jac, newt_rtol, newt_atol, 20, s, true);
-  std::cout << "\nCalling Newton solver to solve shooting method:\n";
-  if (newt.Solve(s) != 0) {
-    std::cerr << "Newton failure\n";
-    return 1;
-  }
+  vec w(2);  w.fill(1.0);   // set trivial error weight vector
+  NewtonSolver newt(resid, jac, newt_tol, w, 20, c, true);
+  cout << "  Calling Newton solver:\n";
+  if (newt.Solve(c) != 0)
+    cerr << "  Warning: Newton convergence failure\n";
 
-  // output final 's' value, re-run IVP to generate BVP solution
-  std::cout << "\nNewton solution: " << std::setprecision(16)
-            << s[0] << "\n";
+  // output final c value, re-run IVP to generate BVP solution
+  cout << "  Newton solution: " << setprecision(16) << trans(c);
+  mat Y = ivp_rkf.Evolve(tspan, c);
 
-  y = {bc_a[1]*s[0] - bc_c[1]*bc_g[0],
-       bc_a[0]*s[0] - bc_c[0]*bc_g[0],
-       bc_a[1], bc_a[0]};                     // IVP initial condition
-  double tcur = tspan[0];                     // IVP time counter
-  int Nt = 201;                               // solution storage
-  double dtout = (tspan[1]-tspan[0])/(Nt-1);  // IVP output frequency
-
-  // loop over output steps: call solver and check solution
-  double maxerr = 0.0;
-  while (tcur < 0.99999*tspan[1]) {
-    vector<double> thisspan = {tcur, std::min( tcur + dtout, tspan[1])};
-    vector<double> tvals = rkf.Evolve(thisspan, y);
-    tcur = tvals.back();
-    maxerr = std::max(maxerr, fabs(bvp.utrue(tcur) - y[0]));
-  }
-
-  // output maximum error and return
-  cout << "maximum BVP solution error = " << std::setprecision(4)
-       << maxerr << "\n";
-  cout << "total RKF steps, failures = " << rkf.steps << ", "
-       << rkf.fails << "\n\n";
+  // output maximum error
+  vec uerr = abs(trans(Y.row(0))-utrue);
+  cout << "  Maximum BVP solution error = " << std::setprecision(4)
+     << uerr.max() << "\n";
 
   return 0;
 }
