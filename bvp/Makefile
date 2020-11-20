@@ -13,7 +13,7 @@ LIBS = -larmadillo
 
 # executable targets
 all : shooting_driver.exe \
-      #stencil_driver.exe \
+      stencil_driver.exe \
       #midpoint_driver.exe \
       #lobatto_driver.exe \
       #hermite_driver.exe
