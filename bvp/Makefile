@@ -10,6 +10,8 @@ CXX = g++
 CXXFLAGS = -O0 -g -std=c++11
 INCS = -I ../shared
 LIBS = -larmadillo
+#SPARSE = -DUSE_SPARSE
+SPARSE =
 
 # executable targets
 all : shooting_driver.exe \
@@ -22,7 +24,7 @@ shooting_driver.exe : shooting_driver.cpp adapt_rkf.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBS) $(INCS)
 
 stencil_driver.exe : stencil_driver.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBS) $(INCS)
+	$(CXX) $(CXXFLAGS) -o $@ $(SPARSE) $^ $(LIBS) $(INCS)
 
 midpoint_driver.exe : midpoint_driver.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBS) $(INCS)

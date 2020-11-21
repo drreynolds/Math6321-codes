@@ -24,6 +24,11 @@
 using namespace std;
 using namespace arma;
 
+#ifndef USE_SPARSE
+#define SPARSE_LINALG 0
+#else
+#define SPARSE_LINALG 1
+#endif
 
 // main routine
 int main(int argc, char **argv) {
@@ -37,13 +42,13 @@ int main(int argc, char **argv) {
 
   // define BVP object
   BVP bvp(lambda);
-  
+
   // loop over spatial resolutions for tests
   vector<int> N = {100, 1000, 10000};
   for (int i=0; i<N.size(); i++) {
 
     // output problem information
-    cout << "\nStencil-based FD method for BVP with lambda = " 
+    cout << "\nStencil-based FD method for BVP with lambda = "
          << lambda << ":" << ",  N = " << N[i] << endl;
 
     // compute/store analytical solution
@@ -54,9 +59,13 @@ int main(int argc, char **argv) {
       utrue(j) = bvp.utrue(t(j));
 
     // create matrix and right-hand side vectors
-    mat A(N[i]+1,N[i]+1); 
-    vec b(N[i]+1);
+#ifdef SPARSE_LINALG
+    sp_mat A(N[i]+1,N[i]+1);
+#else
+    mat A(N[i]+1,N[i]+1);
     A.fill(0.0);
+#endif
+    vec b(N[i]+1);
     b.fill(0.0);
 
     // set up linear system
@@ -72,13 +81,17 @@ int main(int argc, char **argv) {
     }
 
     // solve linear system for BVP solution
+#ifdef SPARSE_LINALG
+    vec u = arma::spsolve(A,b);
+#else
     vec u = arma::solve(A,b);
+#endif
 
     // output maximum error
     vec uerr = abs(u-utrue);
     cout << "  Maximum BVP solution error = " << std::setprecision(4)
        << uerr.max() << "\n";
   }
-  
+
   return 0;
 }
