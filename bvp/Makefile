@@ -10,8 +10,8 @@ CXX = g++
 CXXFLAGS = -O0 -g -std=c++11
 INCS = -I ../shared
 LIBS = -larmadillo
-#SPARSE = -DUSE_SPARSE
-SPARSE =
+SPARSE = -DUSE_SPARSE
+#SPARSE =
 
 # executable targets
 all : shooting_driver.exe \
