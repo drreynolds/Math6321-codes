@@ -17,8 +17,8 @@ SPARSE = -DUSE_SPARSE
 all : shooting_driver.exe \
       stencil_driver.exe \
       midpoint_driver.exe \
-      #lobatto_driver.exe \
-      #hermite_driver.exe
+      lobatto_driver.exe \
+      hermite_driver.exe
 
 shooting_driver.exe : shooting_driver.cpp adapt_rkf.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBS) $(INCS)
