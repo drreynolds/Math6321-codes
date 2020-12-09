@@ -85,38 +85,68 @@ int main(int argc, char **argv) {
     vec b(M);
     b.fill(0.0);
 
-    //*** BEGIN UPDATING FROM HERE DOWNWARD ***//
-
     // set up linear system:
-    //   note: y = [y_{0,1} y_{0,2} y_{1,1} y_{1,2} ... y_{N,1} y_{N,2}]
-    A(0,0) = 1.0;
+    //    recall 'idx' usage: idx(interval,location,component)
+    //      interval:  physical interval index [1 <= interval <= N]
+    //      location:  location in interval [0=left, 1=midpoint, 2=right]
+    //      component: solution component at this location [0=u, 1=u']
+    A(0,idx(1,0,0)) = 1.0;
     b(0) = bvp.ua;
-    A(1,2*N[i]) = 1.0;
+    A(1,idx(N[i],2,0)) = 1.0;
     b(1) = bvp.ub;
+    int irow = 2;
     for (int j=1; j<=N[i]; j++) {
 
       // setup interval-specific information
-      double h = t(j)-t(j-1);
-      double thalf = 0.5*(t(j)+t(j-1));
-      double alpha = -h*bvp.q(thalf);
-      double beta = h*bvp.p(thalf);
-      double gamma = 2.0*h*bvp.r(thalf);
+      double tl = t(j-1);
+      double tr = t(j);
+      double th = 0.5*(tl+tr);
+      double h = tr-tl;
 
-      // setup eqn in row 2*j:
-      //    2*y_{j,1} - 2*y_{j-1,1} - h*y_{j,2} - h*y_{j-1,2} = 0
-      A(2*j,2*j) = 2.0;
-      A(2*j,2*j-2) = -2.0;
-      A(2*j,2*j+1) = -h;
-      A(2*j,2*j-1) = -h;
-      b(2*j) = 0.0;
+      // setup first equation for this interval:
+      //    -24*y_{j-1,0} - 5*h*y_{j-1,1} + 24*y_{j-1/2,0} - 8*h*y_{j-1/2,1} + h*y_{j,1} = 0
+      A(irow,idx(j,0,0)) = -24.0;
+      A(irow,idx(j,0,1)) = -5.0*h;
+      A(irow,idx(j,1,0)) = 24.0;
+      A(irow,idx(j,1,1)) = -8.0*h;
+      A(irow,idx(j,2,1)) = h;
+      b(irow) = 0.0;
+      irow++;
 
-      // setup eqn in row 2*j+1:
-      //     alpha*y_{j,1} + alpha*y_{j-1,1} + (2-beta)*y_{j,2} - (2+beta)*y_{j-1,2} = gamma_j
-      A(2*j+1,2*j) = alpha;
-      A(2*j+1,2*j-2) = alpha;
-      A(2*j+1,2*j+1) = 2.0-beta;
-      A(2*j+1,2*j-1) = -(2.0+beta);
-      b(2*j+1) = gamma;
+      // setup second equation for this interval:
+      //    -5*h*q_{j-1}*y_{j-1,0} - (24+5*h*p_{j-1})*y_{j-1,1} - 8*h*q_{j-1/2}*y_{j-1/2,0}
+      //      + (24-8*h*p_{j-1/2})*y_{j-1/2,1} + h*q_{j}*y_{j,0} + h*p_{j}*y_{j,1} = h*(5*r_{j-1}+8*r_{j-1/2}-r_{j})
+      A(irow,idx(j,0,0)) = -5.0*h*bvp.q(tl);
+      A(irow,idx(j,0,1)) = -(24.0 + 5.0*h*bvp.p(tl));
+      A(irow,idx(j,1,0)) = -8.0*h*bvp.q(th);
+      A(irow,idx(j,1,1)) = (24.0-8.0*h*bvp.p(th));
+      A(irow,idx(j,2,0)) = h*bvp.q(tr);
+      A(irow,idx(j,2,1)) = h*bvp.p(tr);
+      b(irow) = h*(5.0*bvp.r(tl) + 8.0*bvp.r(th) - bvp.r(tr));
+      irow++;
+
+      // setup third equation for this interval:
+      //    -6*y_{j-1,0} - h*y_{j-1,1} - 4*h*y_{j-1/2,1} + 6*y_{j,0} - h*y_{j,1} = 0
+      A(irow,idx(j,0,0)) = -6.0;
+      A(irow,idx(j,0,1)) = -h;
+      A(irow,idx(j,1,1)) = -4.0*h;
+      A(irow,idx(j,2,0)) = 6.0;
+      A(irow,idx(j,2,1)) = -h;
+      b(irow) = 0.0;
+      irow++;
+
+      // setup fourth equation for this interval:
+      //    -h*q_{j-1}*y_{j-1,0} - (6+h*p_{j-1})*y_{j-1,1} - 4*h*q_{j-1/2}*y_{j-1/2,0} - 4*h*p_{j-1/2}*y_{j-1/2,1}
+      //       - h*q_j*y_{j,0} + (6-h*p_j)*y_{j,1} = h*(r_{j-1} + 4*r_{j-1/2} + r_{j})
+      A(irow,idx(j,0,0)) = -h*bvp.q(tl);
+      A(irow,idx(j,0,1)) = -(6.0 + h*bvp.p(tl));
+      A(irow,idx(j,1,0)) = -4.0*h*bvp.q(th);
+      A(irow,idx(j,1,1)) = -4.0*h*bvp.p(th);
+      A(irow,idx(j,2,0)) = -h*bvp.q(tr);
+      A(irow,idx(j,2,1)) = (6.0-h*bvp.p(tr));
+      b(irow) = h*(bvp.r(tl) + 4.0*bvp.r(th) + bvp.r(tr));
+      irow++;
+
     }
 
     // solve linear system for BVP solution
@@ -129,7 +159,7 @@ int main(int argc, char **argv) {
     // output maximum error
     vec u(N[i]+1);
     for (int j=0; j<=N[i]; j++)
-       u(j) = y(2*j);
+      u(j) = y(idx(j+1,0,0));
     vec uerr = abs(u-utrue);
     cout << "  Maximum BVP solution error = " << std::setprecision(4)
        << uerr.max() << "\n";
