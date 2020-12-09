@@ -189,38 +189,46 @@ int main(int argc, char **argv) {
     vec b(M);
     b.fill(0.0);
 
-    //*** BEGIN UPDATING FROM HERE DOWNWARD ***//
-
     // set up linear system:
-    //   note: y = [y_{0,1} y_{0,2} y_{1,1} y_{1,2} ... y_{N,1} y_{N,2}]
-    A(0,0) = 1.0;
+    //    recall 'idx' usage: idx(interval,location,component)
+    //      interval:  physical interval index [1 <= interval <= N]
+    //      location:  location in interval [0=left, 1=right]
+    //      component: solution component at this location [0=u, 1=u']
+    //    recall [dd]phiN usage: [dd]phiN(tleft, h, t)
+    A(0,idx(1,0,0)) = 1.0;
     b(0) = bvp.ua;
-    A(1,2*N[i]) = 1.0;
+    A(1,idx(N[i],1,0)) = 1.0;
     b(1) = bvp.ub;
+    int irow = 2;
     for (int j=1; j<=N[i]; j++) {
 
       // setup interval-specific information
-      double h = t(j)-t(j-1);
-      double thalf = 0.5*(t(j)+t(j-1));
-      double alpha = -h*bvp.q(thalf);
-      double beta = h*bvp.p(thalf);
-      double gamma = 2.0*h*bvp.r(thalf);
+      double tl = t(j-1);
+      double tr = t(j);
+      double h = tr-tl;
+      double eta1 = 0.5*(tr+tl) - h/2.0/sqrt(3.0);
+      double eta2 = 0.5*(tr+tl) + h/2.0/sqrt(3.0);
+      double q1 = bvp.q(eta1);
+      double q2 = bvp.q(eta2);
+      double p1 = bvp.p(eta1);
+      double p2 = bvp.p(eta2);
 
-      // setup eqn in row 2*j:
-      //    2*y_{j,1} - 2*y_{j-1,1} - h*y_{j,2} - h*y_{j-1,2} = 0
-      A(2*j,2*j) = 2.0;
-      A(2*j,2*j-2) = -2.0;
-      A(2*j,2*j+1) = -h;
-      A(2*j,2*j-1) = -h;
-      b(2*j) = 0.0;
+      // setup first equation for this interval: enforce ODE at eta1
+      A(irow,idx(j,0,0)) = ddphi1(tl,h,eta1) - p1*dphi1(tl,h,eta1) - q1*phi1(tl,h,eta1);
+      A(irow,idx(j,0,1)) = ddphi2(tl,h,eta1) - p1*dphi2(tl,h,eta1) - q1*phi2(tl,h,eta1);
+      A(irow,idx(j,1,0)) = ddphi3(tl,h,eta1) - p1*dphi3(tl,h,eta1) - q1*phi3(tl,h,eta1);
+      A(irow,idx(j,1,1)) = ddphi4(tl,h,eta1) - p1*dphi4(tl,h,eta1) - q1*phi4(tl,h,eta1);
+      b(irow) = bvp.r(eta1);
+      irow++;
 
-      // setup eqn in row 2*j+1:
-      //     alpha*y_{j,1} + alpha*y_{j-1,1} + (2-beta)*y_{j,2} - (2+beta)*y_{j-1,2} = gamma_j
-      A(2*j+1,2*j) = alpha;
-      A(2*j+1,2*j-2) = alpha;
-      A(2*j+1,2*j+1) = 2.0-beta;
-      A(2*j+1,2*j-1) = -(2.0+beta);
-      b(2*j+1) = gamma;
+      // setup second equation for this interval: enforce ODE at eta1
+      A(irow,idx(j,0,0)) = ddphi1(tl,h,eta2) - p2*dphi1(tl,h,eta2) - q2*phi1(tl,h,eta2);
+      A(irow,idx(j,0,1)) = ddphi2(tl,h,eta2) - p2*dphi2(tl,h,eta2) - q2*phi2(tl,h,eta2);
+      A(irow,idx(j,1,0)) = ddphi3(tl,h,eta2) - p2*dphi3(tl,h,eta2) - q2*phi3(tl,h,eta2);
+      A(irow,idx(j,1,1)) = ddphi4(tl,h,eta2) - p2*dphi4(tl,h,eta2) - q2*phi4(tl,h,eta2);
+      b(irow) = bvp.r(eta2);
+      irow++;
+
     }
 
     // solve linear system for BVP solution
@@ -233,7 +241,7 @@ int main(int argc, char **argv) {
     // output maximum error
     vec u(N[i]+1);
     for (int j=0; j<=N[i]; j++)
-       u(j) = y(2*j);
+      u(j) = y(idx(j+1,0,0));
     vec uerr = abs(u-utrue);
     cout << "  Maximum BVP solution error = " << std::setprecision(4)
        << uerr.max() << "\n";
