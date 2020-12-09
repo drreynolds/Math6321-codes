@@ -27,13 +27,13 @@ stencil_driver.exe : stencil_driver.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $(SPARSE) $^ $(LIBS) $(INCS)
 
 midpoint_driver.exe : midpoint_driver.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBS) $(INCS)
+	$(CXX) $(CXXFLAGS) -o $@ $(SPARSE) $^ $(LIBS) $(INCS)
 
 lobatto_driver.exe : lobatto_driver.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBS) $(INCS)
+	$(CXX) $(CXXFLAGS) -o $@ $(SPARSE) $^ $(LIBS) $(INCS)
 
 hermite_driver.exe : hermite_driver.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBS) $(INCS)
+	$(CXX) $(CXXFLAGS) -o $@ $(SPARSE) $^ $(LIBS) $(INCS)
 
 
 # utilities
