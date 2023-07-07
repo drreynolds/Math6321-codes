@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # I/O and Plotting Introduction Python Script
 #
@@ -24,7 +24,7 @@ title('Chebyshev polynomials')
 legend(('$T_1(x)$', '$T_3(x)$', '$T_5(x)$', '$T_7(x)$', '$T_9(x)$'))
 savefig('figure1.png')
 
-# we can also plot with manual colors and line styles, using 
+# we can also plot with manual colors and line styles, using
 # identical formatting specifiers as in Matlab
 figure(2)
 plot(x, T[:,0], 'b-',  label='$T_1(x)$')
