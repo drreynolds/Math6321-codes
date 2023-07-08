@@ -30,7 +30,7 @@ def GramSchmidt(X):
     return [0, U]
 
   # get entry magnitude (for linear dependence check)
-  Xmax = np.linalg.norm(U,np.inf)
+  Xmax = np.linalg.norm(X,np.inf)
 
   # normalize first column
   colnorm = np.linalg.norm(U[:,0])
@@ -47,7 +47,7 @@ def GramSchmidt(X):
       U[:,i] -= (np.dot(U[:,i], U[:,j]) * U[:,j])
 
     # normalize vector, checking for linear dependence
-    colnorm = np.linalg.norm(X[:,i])
+    colnorm = np.linalg.norm(U[:,i])
     if (colnorm < 1.e-13*Xmax):
       print("GramSchmidt error: vectors are linearly-dependent!")
       return [1, U]

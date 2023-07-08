@@ -264,7 +264,7 @@ print("     <X2,X2> = ", np.dot(X[:,2],X[:,2]))
 
 print("Testing GramSchmidt, should fail")
 V = np.random.random_sample((20,3))
-V[:,2] = 2*V[:,1]
+V[:,1] = 2*V[:,0]
 iret,V = GramSchmidt(V);
 print("  GramSchmidt returned ", iret, ", dot-products are:")
 print("     <V0,V0> = ", np.dot(V[:,0],V[:,0]))
