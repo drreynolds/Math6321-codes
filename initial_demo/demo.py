@@ -24,7 +24,7 @@ print ("writing array of 1, 2, 3, 4, 5: ", c)
 
 # verify that b has size 5
 if (b.size != 5):
-  print("error: incorrect matrix size")
+    print("error: incorrect matrix size")
 
 # edit entries of a, and write each entry to screen
 a[0] = 10.0
@@ -34,7 +34,7 @@ a[3] = 25.0
 a[4] = 30.0
 print("entries of a, one at a time (should give 10, 15, 20, 25, 30):")
 for i in range(a.size):
-  print("  ", a[i])
+    print("  ", a[i])
 
 # write the values to file
 print("writing/reading this same vector to/from the file 'a_data':")
@@ -47,11 +47,11 @@ np.savetxt("tmp.txt", read_test1a)
 read_test1b = np.loadtxt("tmp.txt")
 read_test1_error = read_test1a - read_test1b
 if (np.linalg.norm(read_test1_error,np.inf) < tol):
-  print("  save/load test 1 passed")
+    print("  save/load test 1 passed")
 else:
-  print("  save/load test 1 failed, ||error|| = ", np.linalg.norm(read_test1_error,np.inf))
-  print("    read_test1a = ", read_test1a)
-  print("    read_test1b = ", read_test1b)
+    print("  save/load test 1 failed, ||error|| = ", np.linalg.norm(read_test1_error,np.inf))
+    print("    read_test1a = ", read_test1a)
+    print("    read_test1b = ", read_test1b)
 
 # testing copy constructor
 B = a.copy()
@@ -208,11 +208,11 @@ print("  ", e)
 # create and fill in a 10x5 matrix
 Y = np.zeros((10,5))
 for i in range(10):
-  Y[i,0] = 1.0*i
-  Y[i,1] = -5.0 + 1.0*i
-  Y[i,2] = 2.0 + 2.0*i
-  Y[i,3] = 20.0 - 1.0*i
-  Y[i,4] = -20.0 + 1.0*i
+    Y[i,0] = 1.0*i
+    Y[i,1] = -5.0 + 1.0*i
+    Y[i,2] = 2.0 + 2.0*i
+    Y[i,3] = 20.0 - 1.0*i
+    Y[i,4] = -20.0 + 1.0*i
 
 # extract columns from matrix
 Y0 = Y[:,0]
@@ -290,9 +290,9 @@ C_ = 100*np.eye(9) + np.random.random_sample((9,9))
 z_ = np.logspace(-4.0, 4.0, 9)
 b_ = C_@z_
 try:
-  x_ = np.linalg.solve(C_, b_)
+    x_ = np.linalg.solve(C_, b_)
 except:
-  print("  solve failed")
+    print("  solve failed")
 else:
-  print("  solve succeeded")
+    print("  solve succeeded")
 print("  ||x - xtrue|| = ", np.linalg.norm(x_ - z_, np.inf), "\n\n")
