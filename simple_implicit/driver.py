@@ -1,0 +1,137 @@
+#!/usr/bin/env python3
+#
+# Main routine to test the backward Euler, trapezoidal, and
+# forward Euler methods on the scalar-valued ODE problem
+#    y' = lambda*y + (1-lambda)*cos(t) - (1+lambda)*sin(t), t in [0,5],
+#    y(0) = 1.
+#
+# D.R. Reynolds
+# Math 6321 @ SMU
+# Fall 2023
+import numpy as np
+import sys
+sys.path.append('..')
+from termcolor import colored
+from shared.ImplicitSolver import *
+from forward_euler.ForwardEuler import *
+from BackwardEuler import *
+from Trapezoidal import *
+
+# problem time interval and parameters
+t0 = 0.0
+tf = 5.0
+lam = 0.0
+
+# problem-defining functions
+def ytrue(t):
+    """ Generates a numpy array containing the true solution to the IVP at a given input t. """
+    return np.array([np.sin(t) + np.cos(t)])
+def f(t,y):
+    """ Right-hand side function, f(t,y), for the IVP """
+    return np.array([lam*y[0] + (1.0-lam)*np.cos(t) - (1.0+lam)*np.sin(t)])
+def J(t,y):
+    """ Jacobian (in dense matrix format) of the right-hand side function, J(t,y) = df/dy """
+    return np.array( [ [lam] ] )
+
+# construct implicit solvers
+solver = ImplicitSolver(J, solver_type='dense', maxiter=20, rtol=1e-9, atol=1e-12, Jfreq=2)
+
+# shared testing data
+Nout = 6   # includes initial condition
+tspan = np.linspace(t0, tf, Nout)
+Ytrue = np.zeros((Nout, 1))
+for i in range(Nout):
+    Ytrue[i,:] = ytrue(tspan[i])
+y0 = Ytrue[0,:]
+hvals = np.array([1.0, 0.1, 0.01, 0.001])
+
+# create forward Euler, backward Euler, and trapezoidal solvers
+BE = BackwardEuler(f, solver)
+Tr = Trapezoidal(f, solver)
+FE = ForwardEuler(f)
+
+
+# loop over stiffness values
+for lam in [-1.0, -10.0, -50.0]:
+
+    # update rhs function, Jacobian, integrators, and implicit solver
+    def f(t,y):
+        """ Right-hand side function, f(t,y), for the IVP """
+        return np.array([lam*y[0] + (1.0-lam)*np.cos(t) - (1.0+lam)*np.sin(t)])
+    def J(t,y):
+        """ Jacobian (in dense matrix format) of the right-hand side function, J(t,y) = df/dy """
+        return np.array( [ [lam] ] )
+    BE.f = f
+    BE.sol.f_y = J
+    Tr.f = f
+    Tr.sol.f_y = J
+    FE.f = f
+
+    # backward Euler tests
+    print(colored("\nbackward Euler tests:", "yellow", attrs=["bold"]))
+    for h in hvals:
+        print("  h = ",h,",  lambda = ", lam,":", sep='')
+        BE.reset()
+        BE.sol.reset()
+        Y, success = BE.Evolve(tspan, y0, h)
+        Yerr = np.abs(Y-Ytrue)
+        if (success):
+            print("     " + colored("  t      y(t)     |err(t)| ", attrs=["underline"]))
+            for i in range(Nout):
+                text = "      %.1f  %10.2e  %.2e" % (tspan[i], Y[i,0], Yerr[i,0])
+                if (Yerr[i,0] > 1):
+                    print(colored(text, "light_red"))
+                else:
+                    print(text)
+            text = "  overall:  steps = %4i  Niters = %6i  NJevals = %5i  abserr = %8.2e" \
+                % (BE.get_num_steps(), BE.sol.get_total_iters(),
+                   BE.sol.get_total_setups(), np.linalg.norm(Yerr,np.inf))
+            if (np.linalg.norm(Yerr,np.inf) > 1):
+                print(colored(text, "red"))
+            else:
+                print(colored(text, "green"))
+
+    # trapezoidal tests
+    print(colored("\ntrapezoidal tests:", "yellow", attrs=["bold"]))
+    for h in hvals:
+        print("  h = ",h,",  lambda = ", lam,":", sep='')
+        Tr.reset()
+        Tr.sol.reset()
+        Y, success = Tr.Evolve(tspan, y0, h)
+        Yerr = np.abs(Y-Ytrue)
+        if (success):
+            print("     " + colored("  t      y(t)     |err(t)| ", attrs=["underline"]))
+            for i in range(Nout):
+                text = "      %.1f  %10.2e  %.2e" % (tspan[i], Y[i,0], Yerr[i,0])
+                if (Yerr[i,0] > 1):
+                    print(colored(text, "light_red"))
+                else:
+                    print(text)
+            text = "  overall:  steps = %4i  Niters = %6i  NJevals = %5i  abserr = %8.2e" % \
+                  (Tr.get_num_steps(), Tr.sol.get_total_iters(),
+                   Tr.sol.get_total_setups(), np.linalg.norm(Yerr,np.inf))
+            if (np.linalg.norm(Yerr,np.inf) > 1):
+                print(colored(text, "red"))
+            else:
+                print(colored(text, "green"))
+
+    # forward Euler tests
+    print(colored("\nforward Euler tests:", "yellow", attrs=["bold"]))
+    for h in hvals:
+        print("  h = ",h,",  lambda = ", lam,":", sep='')
+        FE.reset()
+        Y, success = FE.Evolve(tspan, y0, h)
+        Yerr = np.abs(Y-Ytrue)
+        if (success):
+            print("     " + colored("  t      y(t)     |err(t)| ", attrs=["underline"]))
+            for i in range(Nout):
+                text = "      %.1f  %10.2e  %.2e" % (tspan[i], Y[i,0], Yerr[i,0])
+                if (Yerr[i,0] > 1):
+                    print(colored(text, "light_red"))
+                else:
+                    print(text)
+            text = "  overall:  steps = %4i  abserr = %8.2e" % (FE.get_num_steps(), np.linalg.norm(Yerr,np.inf))
+            if (np.linalg.norm(Yerr,np.inf) > 1):
+                print(colored(text, "red"))
+            else:
+                print(colored(text, "green"))

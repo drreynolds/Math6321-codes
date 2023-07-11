@@ -1,44 +1,63 @@
-# ForwardEuler.py
+# Trapezoidal.py
 #
-# Fixed-stepsize forward Euler stepper class implementation file.
+# Fixed-stepsize trapezoidal stepper class implementation file.
 #
 # Class to perform fixed-stepsize time evolution of the IVP
 #      y' = f(t,y),  t in [t0, Tf],  y(t0) = y0
-# using the forward Euler (explicit Euler) time stepping method.
+# using the trapezoidal time stepping method.
 #
 # D.R. Reynolds
 # Math 6321 @ SMU
 # Fall 2023
 import numpy as np
+import sys
+sys.path.append('..')
+from shared.ImplicitSolver import *
 
-class ForwardEuler:
+class Trapezoidal:
     """
-    Fixed stepsize forward Euler class
+    Fixed stepsize trapezoidal class
 
-    The one required argument when constructing a ForwardEuler object
-    is a function for the IVP right-hand side:
+    The two required arguments when constructing a Trapezoidal object
+    are a function for the IVP right-hand side, and an implicit solver to use:
         f = ODE RHS function with calling syntax f(t,y).
+        sol = algebraic solver object to use [ImplicitSolver]
         h = (optional) input with stepsize to use for time stepping.
             Note that this MUST be set either here or in the Evolve call.
     """
-    def __init__(self, f, h=0.0):
+    def __init__(self, f, sol, h=0.0):
         # required inputs
         self.f = f
         self.h = h
+        self.sol = sol
         # internal data
         self.steps = 0
+        self.fold = 0
 
-    def forward_euler_step(self, t, y):
+    def trapezoidal_step(self, t, y):
         """
-        Usage: t, y, success = forward_euler_step(t, y)
+        Usage: t, y, success = trapezoidal_step(t, y)
 
-        Utility routine to take a single forward Euler time step,
+        Utility routine to take a single trapezoidal time step,
         where the inputs (t,y) are overwritten by the updated versions.
         If success==True then the step succeeded; otherwise it failed.
         """
-        y += self.h * self.f(t,y)
+
+        # compute RHS and store in fold
+        self.fold = self.f(t,y)
+
+        # update t for this step
         t += self.h
+
+        # create implicit residual and Jacobian solver for this step
+        F = lambda ynew: ynew - y - 0.5*self.h * self.fold - 0.5*self.h * self.f(t,ynew)
+        self.sol.setup_linear_solver(t, -0.5*self.h)
+
+        # perform implicit solve, and return on solver failure
+        y, iters, success = self.sol.solve(F, y)
         self.steps += 1
+        if (not success):
+            return t, y, False
         return t, y, True
 
     def reset(self):
@@ -53,7 +72,7 @@ class ForwardEuler:
         """
         Usage: Y, success = Evolve(tspan, y0, h)
 
-        The fixed-step forward Euler evolution routine
+        The fixed-step trapezoidal evolution routine
 
         Inputs:  tspan holds the current time interval, [t0, tf], including any
                      intermediate times when the solution is desired, i.e.
@@ -74,7 +93,7 @@ class ForwardEuler:
 
         # raise error if step size was never set
         if (self.h == 0.0):
-            raise ValueError("ERROR: ForwardEuler::Evolve called without specifying a nonzero step size")
+            raise ValueError("ERROR: Trapezoidal::Evolve called without specifying a nonzero step size")
 
         # verify that tspan values are separated by multiples of h
         for n in range(tspan.size-1):
@@ -99,13 +118,13 @@ class ForwardEuler:
             # iterate over internal time steps to reach next output
             for n in range(N):
 
-                # perform forward Euler update
-                t, y, success = self.forward_euler_step(t, y)
+                # perform trapezoidal step
+                t, y, success = self.trapezoidal_step(t, y)
                 if (not success):
-                    print("forward_euler error in time step at t =", t)
+                    print("Trapezoidal::Evolve error in time step at t =", t)
                     return Y, False
 
-            # store current results in output arrays
+            # store current result in output array
             Y[iout,:] = y.copy()
 
         # return with "success" flag
