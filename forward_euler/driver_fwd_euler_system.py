@@ -58,12 +58,13 @@ for i in range(Nout):
 
 # time steps to try
 hvals = np.array([0.04, 0.02, 0.01, 0.005, 0.0025, 0.00125])
+errs = np.zeros(hvals.size)
 
 # create forward Euler stepper object (will reset rtol before each solve)
 FE = ForwardEuler(f)
 
 # loop over time step sizes; call stepper and compute errors
-for h in hvals:
+for idx, h in enumerate(hvals):
 
     # set initial condition and call stepper
     print("\nRunning with stepsize h = ", h, ":")
@@ -72,8 +73,11 @@ for h in hvals:
 
     # output solution, errors, and overall error
     Yerr = np.abs(Y-Ytrue)
+    errs[idx] = np.linalg.norm(Yerr,np.inf)
     if (N < 10):
         for i in range(Nout):
             print("    y(%.1f) = " % (tspan[i]), Y[i,:])
     print("  overall:  steps = %5i  abserr = %9.2e  relerr = %9.2e" %
-          (FE.get_num_steps(), np.linalg.norm(Yerr,np.inf), np.linalg.norm(Yerr/Ytrue,np.inf)))
+          (FE.get_num_steps(), errs[idx], np.linalg.norm(Yerr/Ytrue,np.inf)))
+orders = np.log(errs[0:-2]/errs[1:-1])/np.log(hvals[0:-2]/hvals[1:-1])
+print('estimated order: max = ', np.max(orders), ',  avg = ', np.average(orders))

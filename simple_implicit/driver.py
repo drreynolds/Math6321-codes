@@ -44,6 +44,7 @@ for i in range(Nout):
     Ytrue[i,:] = ytrue(tspan[i])
 y0 = Ytrue[0,:]
 hvals = np.array([1.0, 0.1, 0.01, 0.001])
+errs = np.zeros(hvals.size)
 
 # create forward Euler, backward Euler, and trapezoidal solvers
 BE = BackwardEuler(f, solver)
@@ -69,12 +70,13 @@ for lam in [-1.0, -10.0, -50.0]:
 
     # backward Euler tests
     print(colored("\nbackward Euler tests:", "yellow", attrs=["bold"]))
-    for h in hvals:
+    for idx, h in enumerate(hvals):
         print("  h = ",h,",  lambda = ", lam,":", sep='')
         BE.reset()
         BE.sol.reset()
         Y, success = BE.Evolve(tspan, y0, h)
         Yerr = np.abs(Y-Ytrue)
+        errs[idx] = np.linalg.norm(Yerr,np.inf)
         if (success):
             print("     " + colored("  t      y(t)     |err(t)| ", attrs=["underline"]))
             for i in range(Nout):
@@ -85,20 +87,23 @@ for lam in [-1.0, -10.0, -50.0]:
                     print(text)
             text = "  overall:  steps = %4i  Niters = %6i  NJevals = %5i  abserr = %8.2e" \
                 % (BE.get_num_steps(), BE.sol.get_total_iters(),
-                   BE.sol.get_total_setups(), np.linalg.norm(Yerr,np.inf))
-            if (np.linalg.norm(Yerr,np.inf) > 1):
+                   BE.sol.get_total_setups(), errs[idx])
+            if (errs[idx] > 1):
                 print(colored(text, "red"))
             else:
                 print(colored(text, "green"))
+    orders = np.log(errs[0:-2]/errs[1:-1])/np.log(hvals[0:-2]/hvals[1:-1])
+    print('estimated order: max = ', np.max(orders), ',  avg = ', np.average(orders))
 
     # trapezoidal tests
     print(colored("\ntrapezoidal tests:", "yellow", attrs=["bold"]))
-    for h in hvals:
+    for idx, h in enumerate(hvals):
         print("  h = ",h,",  lambda = ", lam,":", sep='')
         Tr.reset()
         Tr.sol.reset()
         Y, success = Tr.Evolve(tspan, y0, h)
         Yerr = np.abs(Y-Ytrue)
+        errs[idx] = np.linalg.norm(Yerr,np.inf)
         if (success):
             print("     " + colored("  t      y(t)     |err(t)| ", attrs=["underline"]))
             for i in range(Nout):
@@ -109,19 +114,22 @@ for lam in [-1.0, -10.0, -50.0]:
                     print(text)
             text = "  overall:  steps = %4i  Niters = %6i  NJevals = %5i  abserr = %8.2e" % \
                   (Tr.get_num_steps(), Tr.sol.get_total_iters(),
-                   Tr.sol.get_total_setups(), np.linalg.norm(Yerr,np.inf))
-            if (np.linalg.norm(Yerr,np.inf) > 1):
+                   Tr.sol.get_total_setups(), errs[idx])
+            if (errs[idx] > 1):
                 print(colored(text, "red"))
             else:
                 print(colored(text, "green"))
+    orders = np.log(errs[0:-2]/errs[1:-1])/np.log(hvals[0:-2]/hvals[1:-1])
+    print('estimated order: max = ', np.max(orders), ',  avg = ', np.average(orders))
 
     # forward Euler tests
     print(colored("\nforward Euler tests:", "yellow", attrs=["bold"]))
-    for h in hvals:
+    for idx, h in enumerate(hvals):
         print("  h = ",h,",  lambda = ", lam,":", sep='')
         FE.reset()
         Y, success = FE.Evolve(tspan, y0, h)
         Yerr = np.abs(Y-Ytrue)
+        errs[idx] = np.linalg.norm(Yerr,np.inf)
         if (success):
             print("     " + colored("  t      y(t)     |err(t)| ", attrs=["underline"]))
             for i in range(Nout):
@@ -130,8 +138,10 @@ for lam in [-1.0, -10.0, -50.0]:
                     print(colored(text, "light_red"))
                 else:
                     print(text)
-            text = "  overall:  steps = %4i  abserr = %8.2e" % (FE.get_num_steps(), np.linalg.norm(Yerr,np.inf))
-            if (np.linalg.norm(Yerr,np.inf) > 1):
+            text = "  overall:  steps = %4i  abserr = %8.2e" % (FE.get_num_steps(), errs[idx])
+            if (errs[idx] > 1):
                 print(colored(text, "red"))
             else:
                 print(colored(text, "green"))
+    orders = np.log(errs[0:-2]/errs[1:-1])/np.log(hvals[0:-2]/hvals[1:-1])
+    print('estimated order: max = ', np.max(orders), ',  avg = ', np.average(orders))

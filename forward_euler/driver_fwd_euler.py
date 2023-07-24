@@ -45,11 +45,12 @@ for i in range(Nout):
 
 # time steps to try
 hvals = np.array([0.5, 0.05, 0.005, 0.0005, 0.00005])
+errs = np.zeros(hvals.size)
 
 # problem 1: loop over time step sizes; call stepper and compute errors
 print("\nProblem 1:")
 FE1 = ForwardEuler(f1)
-for h in hvals:
+for idx, h in enumerate(hvals):
 
     # set initial condition and call stepper
     y0 = Y1true[0,:]
@@ -59,15 +60,18 @@ for h in hvals:
 
     # output solution, errors, and overall error
     Yerr = np.abs(Y-Y1true)
+    errs[idx] = np.linalg.norm(Yerr,np.inf)
     for i in range(Nout):
         print("    y(%.1f) = %9.6f   |error| = %.2e" % (tspan[i], Y[i,0], Yerr[i,0]))
-    print("  overall:  steps = %5i  abserr = %9.2e\n" % (FE1.get_num_steps(), np.linalg.norm(Yerr,np.inf)))
+    print("  overall:  steps = %5i  abserr = %9.2e\n" % (FE1.get_num_steps(), errs[idx]))
+orders = np.log(errs[0:-2]/errs[1:-1])/np.log(hvals[0:-2]/hvals[1:-1])
+print('estimated order: max = ', np.max(orders), ',  avg = ', np.average(orders))
 
 
 # problem 2: loop over time step sizes; call stepper and compute errors
 print("\nProblem 2:")
 FE2 = ForwardEuler(f2)
-for h in hvals:
+for idx, h in enumerate(hvals):
 
     # set initial condition and call stepper
     y0 = Y2true[0,:]
@@ -77,7 +81,10 @@ for h in hvals:
 
     # output solution, errors, and overall error
     Yerr = np.abs(Y-Y2true)
+    errs[idx] = np.linalg.norm(Yerr,np.inf)
     for i in range(Nout):
         print("    y(%.1f) = %9.6f   |error| = %.2e" % (tspan[i], Y[i,0], Yerr[i,0]))
     print("  overall:  steps = %5i  abserr = %9.2e  relerr = %9.2e\n" %
-          (FE2.get_num_steps(), np.linalg.norm(Yerr,np.inf), np.linalg.norm(Yerr/Y2true,np.inf)))
+          (FE2.get_num_steps(), errs[idx], np.linalg.norm(Yerr/Y2true,np.inf)))
+orders = np.log(errs[0:-2]/errs[1:-1])/np.log(hvals[0:-2]/hvals[1:-1])
+print('estimated order: max = ', np.max(orders), ',  avg = ', np.average(orders))

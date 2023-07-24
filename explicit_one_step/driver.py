@@ -54,9 +54,9 @@ for idx, h in enumerate(hvals):
 
     # output solution, errors, and overall error
     Yerr = np.abs(Y-Ytrue)
+    errs[idx] = np.linalg.norm(Yerr,np.inf)
     for i in range(Nout):
         print("    y(%.1f) = %9.6f   |error| = %.2e" % (tspan[i], Y[i,0], Yerr[i,0]))
-    errs[idx] = np.linalg.norm(Yerr,np.inf)
     print("  overall:  steps = %5i  nrhs = %5i  abserr = %9.2e  relerr = %9.2e\n" %
           (T2.get_num_steps(), T2.get_num_rhs(), errs[idx], np.linalg.norm(Yerr/Ytrue,np.inf)))
 orders = np.log(errs[0:-2]/errs[1:-1])/np.log(hvals[0:-2]/hvals[1:-1])
@@ -76,9 +76,9 @@ for idx, h in enumerate(hvals):
 
     # output solution, errors, and overall error
     Yerr = np.abs(Y-Ytrue)
+    errs[idx] = np.linalg.norm(Yerr,np.inf)
     for i in range(Nout):
         print("    y(%.1f) = %9.6f   |error| = %.2e" % (tspan[i], Y[i,0], Yerr[i,0]))
-    errs[idx] = np.linalg.norm(Yerr,np.inf)
     print("  overall:  steps = %5i  nrhs = %5i  abserr = %9.2e  relerr = %9.2e\n" %
           (H.get_num_steps(), H.get_num_rhs(), errs[idx], np.linalg.norm(Yerr/Ytrue,np.inf)))
 orders = np.log(errs[0:-2]/errs[1:-1])/np.log(hvals[0:-2]/hvals[1:-1])
@@ -98,9 +98,9 @@ for idx, h in enumerate(hvals):
 
     # output solution, errors, and overall error
     Yerr = np.abs(Y-Ytrue)
+    errs[idx] = np.linalg.norm(Yerr,np.inf)
     for i in range(Nout):
         print("    y(%.1f) = %9.6f   |error| = %.2e" % (tspan[i], Y[i,0], Yerr[i,0]))
-    errs[idx] = np.linalg.norm(Yerr,np.inf)
     print("  overall:  steps = %5i  nrhs = %5i  abserr = %9.2e  relerr = %9.2e\n" %
           (E2.get_num_steps(), E2.get_num_rhs(), errs[idx], np.linalg.norm(Yerr/Ytrue,np.inf)))
 orders = np.log(errs[0:-2]/errs[1:-1])/np.log(hvals[0:-2]/hvals[1:-1])
@@ -120,9 +120,9 @@ for idx, h in enumerate(hvals):
 
     # output solution, errors, and overall error
     Yerr = np.abs(Y-Ytrue)
+    errs[idx] = np.linalg.norm(Yerr,np.inf)
     for i in range(Nout):
         print("    y(%.1f) = %9.6f   |error| = %.2e" % (tspan[i], Y[i,0], Yerr[i,0]))
-    errs[idx] = np.linalg.norm(Yerr,np.inf)
     print("  overall:  steps = %5i  nrhs = %5i  abserr = %9.2e  relerr = %9.2e\n" %
           (E3.get_num_steps(), E3.get_num_rhs(), errs[idx], np.linalg.norm(Yerr/Ytrue,np.inf)))
 orders = np.log(errs[0:-2]/errs[1:-1])/np.log(hvals[0:-2]/hvals[1:-1])
@@ -142,9 +142,9 @@ for idx, h in enumerate(hvals):
 
     # output solution, errors, and overall error
     Yerr = np.abs(Y-Ytrue)
+    errs[idx] = np.linalg.norm(Yerr,np.inf)
     for i in range(Nout):
         print("    y(%.1f) = %9.6f   |error| = %.2e" % (tspan[i], Y[i,0], Yerr[i,0]))
-    errs[idx] = np.linalg.norm(Yerr,np.inf)
     print("  overall:  steps = %5i  nrhs = %5i  abserr = %9.2e  relerr = %9.2e\n" %
           (E4.get_num_steps(), E4.get_num_rhs(), errs[idx], np.linalg.norm(Yerr/Ytrue,np.inf)))
 orders = np.log(errs[0:-2]/errs[1:-1])/np.log(hvals[0:-2]/hvals[1:-1])
