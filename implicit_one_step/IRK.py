@@ -71,60 +71,62 @@ class IRK:
 
         # define IRK residual function
         s = self.s
+        m = y.size
         def F(z):
             # first portion: zi-yold
             resid = np.copy(z)
             for i in range(s):
-                resid[s*i:s*(i+1)] -= y
+                resid[m*i:m*(i+1)] -= y
             # second portion: -h*sum[Aij*f(t+cj*h,zj)]
             for j in range(s):
                 tj = t + self.c[j] * self.h
-                zj = np.array(z[s*i:s*(i+1)])
-                self.k[i,:] = self.f(tj, zj)
+                zj = np.array(z[m*j:m*(j+1)])
+                self.k[j,:] = self.f(tj, zj)
                 for i in range(s):
-                    resid[s*i:s*(i+1)] -= self.h * self.A[i,j] * self.k[i,:]
+                    resid[m*i:m*(i+1)] -= self.h * self.A[i,j] * self.k[j,:]
+            return resid
 
         # construct Jacobian solver for this stage
         if (self.sol.solver_type == 'dense'):
-            def J(y,rtol,abstol):
+            def J(z,rtol,abstol):
                 Jac = np.eye(z.size)
                 for j in range(s):
                     tj = t + self.c[j] * self.h
-                    zj = np.array(z[s*i:s*(i+1)])
+                    zj = np.array(z[m*j:m*(j+1)])
                     Jj = self.sol.f_y(tj, zj)
                     for i in range(s):
-                        Jac[s*i:s*(i+1),s*j:s*(j+1)] -= self.h * self.A[i,j] * Jj
+                        Jac[m*i:m*(i+1),m*j:m*(j+1)] -= self.h * self.A[i,j] * Jj
                 try:
                     lu, piv = lu_factor(Jac)
                 except:
                     raise RuntimeError("Dense Jacobian factorization failure")
                 Jsolve = lambda b: lu_solve((lu, piv), b)
-                return LinearOperator((y.size,y.size), matvec=Jsolve)
+                return LinearOperator((z.size,z.size), matvec=Jsolve)
         elif (self.sol.solver_type == 'sparse'):
-            def J(y,rtol,abstol):
+            def J(z,rtol,abstol):
                 Jac = identity(z.size)
                 for j in range(s):
                     tj = t + self.c[j] * self.h
-                    zj = np.array(z[s*i:s*(i+1)])
+                    zj = np.array(z[m*j:m*(j+1)])
                     Jj = self.sol.f_y(tj, zj)
                     for i in range(s):
-                        Jac[s*i:s*(i+1),s*j:s*(j+1)] -= self.h * self.A[i,j] * Jj
+                        Jac[m*i:m*(i+1),m*j:m*(j+1)] -= self.h * self.A[i,j] * Jj
                 try:
                     Jfactored = factorized(Jac)
                 except:
                     raise RuntimeError("Sparse Jacobian factorization failure")
                 Jsolve = lambda b: Jfactored(b)
-                return LinearOperator((y.size,y.size), matvec=Jsolve)
+                return LinearOperator((z.size,z.size), matvec=Jsolve)
         elif (self.sol.solver_type == 'gmres'):
             def J(z,rtol,abstol):
                 def Jv(v):
                     Jvprod = np.copy(v)
                     for j in range(s):
                         tj = t + self.c[j] * self.h
-                        zj = np.array(z[s*i:s*(i+1)])
+                        zj = np.array(z[m*j:m*(j+1)])
                         Jjv = self.sol.f_y(tj, zj, v)
                         for i in range(s):
-                            Jvprod[s*i:s*(i+1),s*j:s*(j+1)] -= self.h * self.A[i,j] * Jjv
+                            Jvprod[m*i:m*(i+1),m*j:m*(j+1)] -= self.h * self.A[i,j] * Jjv
                 J = LinearOperator((z.size,z.size), matvec=Jv)
                 Jsolve = lambda b: gmres(J, b, tol=rtol, atol=abstol)[0]
                 return LinearOperator((z.size,z.size), matvec=Jsolve)
@@ -135,10 +137,10 @@ class IRK:
                     Jvprod = np.copy(v)
                     for j in range(s):
                         tj = t + self.c[j] * self.h
-                        zj = np.array(z[s*i:s*(i+1)])
+                        zj = np.array(z[m*j:m*(j+1)])
                         Jjv = self.sol.f_y(tj, zj, v)
                         for i in range(s):
-                            Jvprod[s*i:s*(i+1),s*j:s*(j+1)] -= self.h * self.A[i,j] * Jjv
+                            Jvprod[m*i:m*(i+1),m*j:m*(j+1)] -= self.h * self.A[i,j] * Jjv
                 J = LinearOperator((z.size,z.size), matvec=Jv)
                 Jsolve = lambda b: gmres(J, b, tol=rtol, atol=abstol, M=P)[0]
                 return LinearOperator((z.size,z.size), matvec=Jsolve)
@@ -146,7 +148,7 @@ class IRK:
 
         # create initial guess for time-evolved solution
         for i in range(s):
-            self.z[s*i:s*(i+1)] = np.copy(y)
+            self.z[m*i:m*(i+1)] = np.copy(y)
 
         # perform implicit solve, and return on solver failure
         self.z, iters, success = self.sol.solve(F, self.z)
@@ -313,9 +315,9 @@ def GaussLegendre3():
              c holds the Runge--Kutta abcissae
              p holds the Runge--Kutta method order
     """
-    A = np.array((5.0/36.0, 2.0/9.0 - np.sqrt(15.0)/15.0, 5.0/36.0 - np.sqrt(15.0)/30.0),
-                 (5.0/36.0 + np.sqrt(15.0)/24.0, 2.0/9.0, 5.0/36.0 - np.sqrt(15.0)/24.0),
-                 (5.0/36.0 + np.sqrt(15.0)/30.0, 2.0/9.0 + np.sqrt(15.0)/15.0, 5.0/36.0))
+    A = np.array(( (5.0/36.0, 2.0/9.0 - np.sqrt(15.0)/15.0, 5.0/36.0 - np.sqrt(15.0)/30.0),
+                   (5.0/36.0 + np.sqrt(15.0)/24.0, 2.0/9.0, 5.0/36.0 - np.sqrt(15.0)/24.0),
+                   (5.0/36.0 + np.sqrt(15.0)/30.0, 2.0/9.0 + np.sqrt(15.0)/15.0, 5.0/36.0) ))
     b = np.array((5.0/18.0, 4.0/9.0, 5.0/18.0))
     c = np.array(((5.0 - np.sqrt(15.0))/10.0, 0.5, (5.0 + np.sqrt(15.0))/10.0))
     p = 6

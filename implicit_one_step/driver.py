@@ -11,7 +11,6 @@
 import numpy as np
 import sys
 sys.path.append('..')
-from termcolor import colored
 from shared.ImplicitSolver import *
 from DIRK import *
 from IRK import *
@@ -58,6 +57,7 @@ errs = np.zeros(hvals.size)
 # test runner function
 def RunTest(stepper, name):
 
+    print("\n", name, " tests:", sep='')
     # loop over stiffness values
     for lam in lambdas:
 
@@ -77,32 +77,21 @@ def RunTest(stepper, name):
         else:
             stepper.sol.f_y = J
 
-        text = "\n" + name + " tests:"
-        print(colored(text, "yellow", attrs=["bold"]))
+        print("  lambda = " , lam, ":", sep='')
         for idx, h in enumerate(hvals):
-            print("  h = ",h,",  lambda = ", lam,":", sep='')
+            print("    h = %.3f:" % (h), sep='', end='')
             stepper.reset()
             stepper.sol.reset()
             Y, success = stepper.Evolve(tspan, y0, h)
             Yerr = np.abs(Y-Ytrue)
             errs[idx] = np.linalg.norm(Yerr,np.inf)
             if (success):
-                print("     " + colored("  t      y(t)     |err(t)| ", attrs=["underline"]))
-                for i in range(Nout):
-                    text = "      %.1f  %10.2e  %.2e" % (tspan[i], Y[i,0], Yerr[i,0])
-                    if (Yerr[i,0] > 1):
-                        print(colored(text, "light_red"))
-                    else:
-                        print(text)
-                text = "  overall:  steps = %4i  Niters = %6i  NJevals = %5i  abserr = %8.2e" \
-                    % (stepper.get_num_steps(), stepper.sol.get_total_iters(),
-                       stepper.sol.get_total_setups(), errs[idx])
-                if (errs[idx] > 1):
-                    print(colored(text, "red"))
-                else:
-                    print(colored(text, "green"))
+                print("  solves = %4i  Niters = %6i  NJevals = %5i  abserr = %8.2e" %
+                      (stepper.get_num_solves(), stepper.sol.get_total_iters(),
+                       stepper.sol.get_total_setups(), errs[idx]))
         orders = np.log(errs[0:-2]/errs[1:-1])/np.log(hvals[0:-2]/hvals[1:-1])
-        print('estimated order: max = ', np.max(orders), ',  avg = ', np.average(orders))
+        print('    estimated order:  max = %.2f,  avg = %.2f' %
+              (np.max(orders), np.average(orders)))
 
 
 
@@ -117,7 +106,7 @@ Alex3 = DIRK(f, solver, A, b, c)
 RunTest(Alex3, 'Alexander-3')
 
 # Crouzeix & Raviart tests
-A, b, c, p = CrouzeixRaviart4()
+A, b, c, p = CrouzeixRaviart3()
 CR3 = DIRK(f, solver, A, b, c)
 RunTest(CR3, 'Crouzeix & Raviart-3')
 
