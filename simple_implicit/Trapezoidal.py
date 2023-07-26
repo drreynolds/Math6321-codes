@@ -28,8 +28,9 @@ class Trapezoidal:
     def __init__(self, f, sol, h=0.0):
         # required inputs
         self.f = f
-        self.h = h
         self.sol = sol
+        # optional inputs
+        self.h = h
         # internal data
         self.steps = 0
         self.fold = 0
