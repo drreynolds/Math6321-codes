@@ -55,29 +55,29 @@ class Explicit_LMM:
             raise ValueError("Explicit_LMM ERROR: alpha and beta do not have the same length, (",
                              alpha.size, " != ", beta.size, ")")
 
-    def explicit_lmm_step(self, t, yarr):
+    def explicit_lmm_step(self, t):
         """
-        Usage: t, yarr, success = explicit_lmm_step(t, yarr)
+        Usage: t, success = explicit_lmm_step(t)
 
         Utility routine to take a single explicit LMM time step,
-        where the inputs (t,yarr) are overwritten by the updated versions.
+        where the input `t` is overwritten by the updated versions.
         If success==True then the step succeeded; otherwise it failed.
         """
         y = (self.h * self.beta[1] / self.alpha[0]) * self.fprev[-1] \
-            - (self.alpha[1] / self.alpha[0]) * yarr[-1]
+            - (self.alpha[1] / self.alpha[0]) * self.yprev[-1]
         for i in range(2, self.k):
             y += (self.h * self.beta[i] / self.alpha[0]) * self.fprev[-i] \
-                - (self.alpha[i] / self.alpha[0]) * yarr[-i]
+                - (self.alpha[i] / self.alpha[0]) * self.yprev[-i]
         t += self.h
 
         # add current solution and RHS to queue, and remove oldest solution and RHS
-        yarr.pop(0)
-        yarr.append(y)
+        self.yprev.pop(0)
+        self.yprev.append(y)
         self.fprev.pop(0)
         self.fprev.append(self.f(t,y))
         self.nrhs += 1
         self.steps += 1
-        return t, yarr, True
+        return t, True
 
     def reset(self):
         """ Resets the accumulated number of steps """
@@ -142,10 +142,11 @@ class Explicit_LMM:
 
         # initialize internal solution-vector-sized data
         self.fprev = []
-        yprev = []
+        self.yprev = []
         for i in range(self.k-1):
-            yprev.append(y0[i,:])
+            self.yprev.append(y0[i,:])
             self.fprev.append(self.f(tspan[0]-(self.k-2-i)*self.h, y0[i,:]))
+            self.nrhs += 1
 
         # loop over desired output times
         for iout in range(1,tspan.size):
@@ -160,13 +161,13 @@ class Explicit_LMM:
             for n in range(N):
 
                 # perform LMM update
-                t, yprev, success = self.explicit_lmm_step(t, yprev)
+                t, success = self.explicit_lmm_step(t)
                 if (not success):
                     print("explicit_lmm error in time step at t =", tcur)
                     return Y, False
 
             # store current results in output arrays
-            Y[iout,:] = yprev[-1]
+            Y[iout,:] = self.yprev[-1]
 
         # return with "success" flag
         return Y, True

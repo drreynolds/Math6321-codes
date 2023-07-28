@@ -49,12 +49,12 @@ tspan = np.linspace(t0, tf, Nout)
 Ytrue = np.zeros((Nout, 1))
 for i in range(Nout):
     Ytrue[i,:] = ytrue(tspan[i])
-lambdas = np.array( (-1.0, -10.0, -50.0, -1000.0) )
+lambdas = np.array( (-1.0, -10.0, -50.0, -100.0) )
 hvals = np.array( (0.1, 0.05, 0.01, 0.005, 0.001) )
 errs = np.zeros(hvals.size)
 
 # test runner function
-def RunTest(stepper, name, implicit):
+def RunTest(stepper, prevsteps, name, implicit):
 
     print("\n", name, " tests:", sep='')
     # loop over stiffness values
@@ -64,6 +64,7 @@ def RunTest(stepper, name, implicit):
         def f(t,y):
             """ Right-hand side function, f(t,y), for the IVP """
             return np.array([lam*y[0] + (1.0-lam)*np.cos(t) - (1.0+lam)*np.sin(t)])
+        stepper.f = f
         if (implicit):
             def J(t,y):
                 """ Jacobian (dense) of the right-hand side function, J(t,y) = df/dy """
@@ -71,7 +72,6 @@ def RunTest(stepper, name, implicit):
             def Jv(t,y,v):
                 """ Jacobian-vector product, J(t,y)@v = (df/dy)@v """
                 return np.array( [lam*v[0]] )
-            stepper.f = f
             if (iterative):
                 stepper.sol.f_y = Jv
             else:
@@ -84,8 +84,10 @@ def RunTest(stepper, name, implicit):
             if (implicit):
                 stepper.sol.reset()
             # create overly-long initial condition vector (sufficient for all methods)
-            y0 = np.array([ytrue(t0-5*h), ytrue(t0-4*h), ytrue(t0-3*h), ytrue(t0-2*h),
-                           ytrue(t0-h), ytrue(t0)])
+            y0 = np.zeros((prevsteps+1, ytrue(t0).size), dtype=float)
+            y0[-1,:] = ytrue(t0)
+            for k in range(1,prevsteps+1):
+                y0[-1-k,:] = ytrue(t0-k*h)
             Y, success = stepper.Evolve(tspan, y0, h)
             Yerr = np.abs(Y-Ytrue)
             errs[idx] = np.linalg.norm(Yerr,np.inf)
@@ -105,19 +107,19 @@ def RunTest(stepper, name, implicit):
 # Adams-Bashforth-1
 alphas, betas, p = AdamsBashforth1()
 AB1 = Explicit_LMM(f, alphas, betas)
-RunTest(AB1, 'Adams-Bashforth-1', False)
+RunTest(AB1, 0, 'Adams-Bashforth-1', False)
 
 # Adams-Bashforth-2
 alphas, betas, p = AdamsBashforth2()
 AB2 = Explicit_LMM(f, alphas, betas)
-RunTest(AB2, 'Adams-Bashforth-2', False)
+RunTest(AB2, 1, 'Adams-Bashforth-2', False)
 
 # Adams-Bashforth-3
 alphas, betas, p = AdamsBashforth3()
 AB3 = Explicit_LMM(f, alphas, betas)
-RunTest(AB3, 'Adams-Bashforth-3', False)
+RunTest(AB3, 2, 'Adams-Bashforth-3', False)
 
 # Adams-Bashforth-4
 alphas, betas, p = AdamsBashforth4()
 AB4 = Explicit_LMM(f, alphas, betas)
-RunTest(AB4, 'Adams-Bashforth-4', False)
+RunTest(AB4, 3, 'Adams-Bashforth-4', False)
