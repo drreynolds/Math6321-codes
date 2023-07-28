@@ -89,7 +89,7 @@ class ERK:
         """
         Usage: Y, success = Evolve(tspan, y0, h)
 
-        The fixed-step explicit Runge--Kutta evolution routine
+        The fixed-step explicit Runge--Kutta evolution routine.
 
         Inputs:  tspan holds the current time interval, [t0, tf], including any
                      intermediate times when the solution is desired, i.e.
@@ -101,7 +101,7 @@ class ERK:
                      [y(t0), y(t1), ..., y(tf)]
                  success = True if the solver traversed the interval,
                      false if an integration step failed [bool]
-    """
+        """
 
         # set time step for evoluation based on input-vs-stored value
         if (h != 0.0):

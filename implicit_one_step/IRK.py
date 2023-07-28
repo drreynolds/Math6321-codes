@@ -121,12 +121,14 @@ class IRK:
             def J(z,rtol,abstol):
                 def Jv(v):
                     Jvprod = np.copy(v)
-                    for j in range(s):
-                        tj = t + self.c[j] * self.h
-                        zj = np.array(z[m*j:m*(j+1)])
-                        Jjv = self.sol.f_y(tj, zj, v)
-                        for i in range(s):
-                            Jvprod[m*i:m*(i+1),m*j:m*(j+1)] -= self.h * self.A[i,j] * Jjv
+                    for i in range(s):
+                        ti = t + self.c[i] * self.h
+                        zi = np.array(z[m*i:m*(i+1)])
+                        for j in range(s):
+                            vj = np.array(v[m*j:m*(j+1)])
+                            Jijv = self.sol.f_y(ti, zi, vj)
+                            Jvprod[m*i:m*(i+1)] -= self.h * self.A[i,j] * Jijv
+                    return Jvprod
                 J = LinearOperator((z.size,z.size), matvec=Jv)
                 Jsolve = lambda b: gmres(J, b, tol=rtol, atol=abstol)[0]
                 return LinearOperator((z.size,z.size), matvec=Jsolve)
@@ -135,12 +137,14 @@ class IRK:
                 P = self.sol.prec(t,z,self.h*self.A[0,0],rtol,abstol)
                 def Jv(v):
                     Jvprod = np.copy(v)
-                    for j in range(s):
-                        tj = t + self.c[j] * self.h
-                        zj = np.array(z[m*j:m*(j+1)])
-                        Jjv = self.sol.f_y(tj, zj, v)
-                        for i in range(s):
-                            Jvprod[m*i:m*(i+1),m*j:m*(j+1)] -= self.h * self.A[i,j] * Jjv
+                    for i in range(s):
+                        ti = t + self.c[i] * self.h
+                        zi = np.array(z[m*i:m*(i+1)])
+                        for j in range(s):
+                            vj = np.array(v[m*j:m*(j+1)])
+                            Jijv = self.sol.f_y(ti, zi, vj)
+                            Jvprod[m*i:m*(i+1)] -= self.h * self.A[i,j] * Jijv
+                    return Jvprod
                 J = LinearOperator((z.size,z.size), matvec=Jv)
                 Jsolve = lambda b: gmres(J, b, tol=rtol, atol=abstol, M=P)[0]
                 return LinearOperator((z.size,z.size), matvec=Jsolve)

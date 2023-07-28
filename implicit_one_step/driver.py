@@ -21,21 +21,21 @@ tf = 5.0
 lam = 0.0
 
 # flag to switch between dense and iterative linear solvers
-iterative = False
+iterative = True
 
 # problem-defining functions
 def ytrue(t):
     """ Generates a numpy array containing the true solution to the IVP at a given input t. """
-    return np.array([np.sin(t) + np.cos(t)])
+    return np.array( [np.sin(t) + np.cos(t)] )
 def f(t,y):
     """ Right-hand side function, f(t,y), for the IVP """
-    return np.array([lam*y[0] + (1.0-lam)*np.cos(t) - (1.0+lam)*np.sin(t)])
+    return np.array( [lam*y[0] + (1.0-lam)*np.cos(t) - (1.0+lam)*np.sin(t)] )
 def J(t,y):
     """ Jacobian (in dense matrix format) of the right-hand side function, J(t,y) = df/dy """
     return np.array( [ [lam] ] )
 def Jv(t,y,v):
-    """ Jacobian (in dense matrix format) of the right-hand side function, J(t,y) = df/dy """
-    return np.array( [lam*v] )
+    """ Jacobian-vector-product of the right-hand side function, J(t,y) = (df/dy)@v """
+    return np.array( [lam*v[0]] )
 
 # construct implicit solver
 if (iterative):
@@ -70,7 +70,7 @@ def RunTest(stepper, name):
             return np.array( [ [lam] ] )
         def Jv(t,y,v):
             """ Jacobian-vector product, J(t,y)@v = (df/dy)@v """
-            return np.array( [lam*v] )
+            return np.array( [lam*v[0]] )
         stepper.f = f
         if (iterative):
             stepper.sol.f_y = Jv
