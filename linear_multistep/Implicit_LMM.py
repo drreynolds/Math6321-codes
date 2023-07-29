@@ -1,129 +1,298 @@
-# implicit_lmm.py
+# Explicit_LMM.py
 #
-# Daniel R. Reynolds
-# Department of Mathematics
-# Southern Methodist University
-from implicit_solver import ImplicitSolver
+# Fixed-stepsize explicit linear multistep class implementation file.
+#
+# Also contains functions to return Adams-Bashforth LMM coefficients
+# of orders 1-4.
+#
+# Class to perform fixed-stepsize time evolution of the IVP
+#      y' = f(t,y),  t in [t0, Tf],  y(t0) = y0
+# using an explicit linear multistep (LMM) time stepping method.
+#
+# D.R. Reynolds
+# Math 6321 @ SMU
+# Fall 2023
+import numpy as np
+import sys
+sys.path.append('..')
+from shared.ImplicitSolver import *
 
-def implicit_lmm_step(f, yarr, farr, t, h, alpha, beta, sol):
+class Implicit_LMM:
     """
-    Usage: t, yarr, farr, sol, success = implicit_lmm_step(f, yarr, farr, t, h, alpha, beta, sol)
+    Fixed stepsize implicit linear multistep class
 
-    Utility routine to take a single implicit LMM time step,
-    where the inputs (t,yarr,farr,sol) are overwritten by the updated versions.
-    If success==True then the step succeeded; otherwise it failed.
-    """
-    # create LMM residual and Jacobia solver for this step
-    t += h
-    data = (h*beta[1]/alpha[0])*farr[-1] - (alpha[1]/alpha[0])*yarr[-1]
-    for i in range(2,alpha.size):
-        data += (h*beta[i]/alpha[0])*farr[-i] - (alpha[i]/alpha[0])*yarr[-i]
-
-    # create implicit residual and Jacobian solver for this step
-    F = lambda ynew: ynew - data - (h*beta[0]/alpha[0])*f(t,ynew)
-    sol.setup_linear_solver(t, -h*beta[0]/alpha[0])
-
-    # perform implicit solve, and return on solver failure
-    y, iters, success = sol.solve(F, yarr[-1])
-    if (not success):
-        return (t, yarr, farr, sol, False)
-
-    # add current solution and RHS to queue, and remove oldest solution and RHS
-    yarr.pop(0)
-    yarr.append(y)
-    farr.pop(0)
-    farr.append(f(t,y))
-    return (t, yarr, farr, sol, True)
-
-
-def implicit_lmm(f, tspan, y0, h, alpha, beta, solver):
-    """
-    Usage: t, y, success = implicit_lmm(f, tspan, y0, h, alpha, beta, solver)
-
-    Time-stepping function with syntax similar to
-    scipy.integrate.solve_ivp, and that uses an implicit linear
-    multistep method of the form
+    The four required arguments when constructing an implicit linear
+    multistep object are a function for the IVP right-hand side, an
+    implicit solver to use, and the LMM coefficients:
+        f = ODE RHS function with calling syntax f(t,y).
+        sol = algebraic solver object to use [ImplicitSolver]
+        alpha = LMM coefficients on previous solution values
+        beta = LMM coefficients on previous RHS values
+        h = (optional) input with stepsize to use for time stepping.
+            Note that this MUST be set either here or in the Evolve call.
+    Note that the LMM has the form:
        \sum_{j=0}^{k-1} \alpha_j y_{n+1-j} = h\sum_{j=0}^{k-1} \beta_j f_{n+1-j},
     for computing each internal step, for an ODE IVP of the form
        y' = f(t,y), t in tspan,
        y(t0) = y0.
-
-    Note: this requires that y0 has separate columns containing
-    sufficiently accurate "initial" values for all previous LMM steps.
-
-    Inputs:  f     = function for ODE right-hand side, f(t,y)
-             tspan = times at which to store the computed solution
-                     (must be sorted, and each must occur naturally in
-                     the set tspan[0], tspan[0]+h, tspan[0]+2h , ...
-                     [nd-array, shape(n_out)]
-             y0    = initial condition [nd-array, shape(k-1,n)], sorted as
-                     [y0(t0-(k-2)*h), ... y0(t0-h), y0(t0)]
-             h     = internal time step to use [float]
-             alpha = linear multistep coefficients, sorted as
-                     [\alpha_0, \alpha_1, ... \alpha_{k-1}] [nd-array, shape(k)]
-             beta  = linear multistep coefficients, sorted as
-                     [\beta_0, \beta_1, ... \beta_{k-1}]  [nd-array, shape(k)]
-             solver = algebraic solver object to use
-                      [ImplicitSolver, see implicit_solver.py]
-
-    Outputs: t       = tspan [nd-array, shape(n_out)]
-             y       = values of the solution at t [nd-arary, shape(n, n_out)]
-             success = True if the solver traversed the interval,
-                       false if an integration step failed [bool]
     """
-    import numpy as np
+    def __init__(self, f, sol, alpha, beta, h=0.0):
+        # required inputs
+        self.f = f
+        self.sol = sol
+        self.alpha = alpha
+        self.beta = beta
+        # optional inputs
+        self.h = h
+        # internal data
+        self.steps = 0
+        self.k = alpha.size
 
-    # verify that tspan values are separated by multiples of h
-    for n in range(tspan.size-1):
-        hn = tspan[n+1]-tspan[n]
-        if (abs(round(hn/h) - (hn/h)) > 100*np.sqrt(np.finfo(h).eps)*abs(h)):
-            raise ValueError("input values in tspan (%e,%e) are not separated by a multiple of h" % (tspan[n],tspan[n+1]))
+        # verify that input LMM coefficients are valid
+        if (abs(alpha[0]) == 0):
+            raise ValueError("Implicit_LMM ERROR: alpha[0] = ", alpha[0], " (should be nonzero)")
+        if (beta.size != self.k):
+            raise ValueError("Implicit_LMM ERROR: alpha and beta do not have the same length, (",
+                             alpha.size, " != ", beta.size, ")")
 
-    # verify that input LMM coefficients are valid
-    k = alpha.size
-    if (abs(alpha[0]) == 0):
-        raise ValueError("LMM coefficient must have nonzero alpha[0], ", alpha[0], " was input")
-    if (beta.size != k):
-        raise ValueError("LMM coefficient arrays must be the same length,", beta.size, " != ", k)
-    if (np.shape(y0)[0] < (k-1)):
-        raise ValueError("insufficient initial conditions provided, ", np.shape(y0)[0], " < ", alpha.size-1)
+    def implicit_lmm_step(self, t):
+        """
+        Usage: t, success = implicit_lmm_step(t)
 
-    # initialize outputs, and set first entry corresponding to initial condition
-    t = np.zeros(tspan.size)
-    y = np.zeros((tspan.size,y0.shape[1]))
-    t[0] = tspan[0]
-    y[0,:] = y0[-1,:]
+        Utility routine to take a single implicit LMM time step,
+        where the inputs `t` is overwritten by the updated value.
+        If success==True then the step succeeded; otherwise it failed.
+        """
 
-    # initialize internal data
-    fprev = []
-    yprev = []
-    for i in range(k-1):
-        yprev.append(y0[i,:])
-        fprev.append(f(tspan[0]-(k-2-i)*h, y0[i,:]))
+        # create LMM residual and Jacobian solver for this step
+        t += self.h
+        self.data = (self.h * self.beta[1] / self.alpha[0]) * self.fprev[-1] \
+            - (self.alpha[1] / self.alpha[0]) * self.yprev[-1]
+        for i in range(2, self.k):
+            self.data += (self.h * self.beta[i] / self.alpha[0]) * self.fprev[-i] \
+                - (self.alpha[i] / self.alpha[0]) * self.yprev[-i]
 
-    # loop over desired output times
-    for iout in range(1,tspan.size):
+        # create implicit residual and Jacobian solver for this step
+        F = lambda ynew: ynew - self.data - (self.h * self.beta[0] / self.alpha[0]) \
+            * self.f(t,ynew)
+        self.sol.setup_linear_solver(t, -self.h * self.beta[0] / self.alpha[0])
 
-        # determine how many internal steps are required
-        N = int(round((tspan[iout]-tspan[iout-1])/h))
+        # perform implicit solve, and return on solver failure
+        y, iters, success = self.sol.solve(F, self.yprev[-1])
+        if (not success):
+            return t, False
 
-        # reset "current" t that will be evolved internally
-        tcur = tspan[iout-1]
+        # add current solution and RHS to queue, and remove oldest solution and RHS
+        self.yprev.pop(0)
+        self.yprev.append(y)
+        self.fprev.pop(0)
+        self.fprev.append(self.f(t,y))
+        self.steps += 1
+        return t, True
 
-        # iterate over internal time steps to reach next output
-        for n in range(N):
+    def reset(self):
+        """ Resets the accumulated number of steps """
+        self.steps = 0
 
-            # perform LMM update
-            tcur, yprev, fprev, solver, step_success = implicit_lmm_step(f, yprev, fprev,
-                                                                         tcur, h, alpha,
-                                                                         beta, solver)
-            if (not step_success):
-                print("implicit_lmm error in time step at t =", tcur)
-                return (t, y, False)
+    def get_num_steps(self):
+        """ Returns the accumulated number of steps """
+        return self.steps
 
-        # store current results in output arrays
-        t[iout] = tcur
-        y[iout,:] = yprev[-1]
+    def Evolve(self, tspan, y0, h=0.0):
+        """
+        Usage: Y, success = Evolve(tspan, y0, h)
 
-    # return with "success" flag
-    return (t, y, True)
+        The fixed-step implicit linear multistep evolution routine.
+
+        Note: this requires that y0 has separate rows containing
+        sufficiently accurate "initial" values for all previous LMM steps.
+
+        Inputs:  tspan holds the current time interval, [t0, tf], including any
+                     intermediate times when the solution is desired, i.e.
+                     [t0, t1, ..., tf]
+                 y0 holds the initial conditions [nd-array, shape(k-1,n)],
+                     sorted as [y0(t0-(k-2)*h), ... y0(t0-h), y0(t0)]
+                 h optionally holds the requested step size (if it is not
+                     provided then the stored value will be used)
+
+        Outputs: Y holds the computed solution at all tspan values,
+                     [y(t0), y(t1), ..., y(tf)]
+                 success = True if the solver traversed the interval,
+                     false if an integration step failed [bool]
+        """
+
+        # set time step for evoluation based on input-vs-stored value
+        if (h != 0.0):
+            self.h = h
+
+        # raise error if step size was never set
+        if (self.h == 0.0):
+            raise ValueError("ERROR: Explicit_LMM::Evolve called without specifying a nonzero step size")
+
+        # verify that tspan values are separated by multiples of h
+        for n in range(tspan.size-1):
+            hn = tspan[n+1]-tspan[n]
+            if (abs(round(hn/self.h) - (hn/self.h)) > 100*np.sqrt(np.finfo(h).eps)*abs(self.h)):
+                raise ValueError("input values in tspan (%e,%e) are not separated by a multiple of h = %e" % (tspan[n],tspan[n+1],h))
+
+        # verify that a sufficient set of initial conditions have been supplied
+        if (np.shape(y0)[0] < (self.k-1)):
+            raise ValueError("insufficient initial conditions provided, ",
+                             np.shape(y0)[0], " < ", alpha.size-1)
+
+        # initialize outputs, and set first entry corresponding to initial condition
+        t = np.zeros(tspan.size)
+        Y = np.zeros((tspan.size,y0.shape[1]))
+        Y[0,:] = y0[-1,:]
+
+        # initialize internal solution-vector-sized data
+        self.data = np.copy(y0[-1,:])
+        self.fprev = []
+        self.yprev = []
+        for i in range(self.k-1):
+            self.yprev.append(y0[i,:])
+            self.fprev.append(self.f(tspan[0]-(self.k-2-i)*self.h, y0[i,:]))
+
+        # loop over desired output times
+        for iout in range(1,tspan.size):
+
+            # determine how many internal steps are required
+            N = int(round((tspan[iout]-tspan[iout-1])/self.h))
+
+            # reset "current" t that will be evolved internally
+            t = tspan[iout-1]
+
+            # iterate over internal time steps to reach next output
+            for n in range(N):
+
+                # perform LMM update
+                t, success = self.implicit_lmm_step(t)
+                if (not success):
+                    print("implicit_lmm error in time step at t =", t)
+                    return Y, False
+
+            # store current result in output array
+            Y[iout,:] = self.yprev[-1]
+
+        # return with "success" flag
+        return Y, True
+
+def AdamsMoulton1():
+    """
+    Usage: alphas, betas, p = AdamsMoulton1()
+
+    Utility routine to return the 1st order Adams Moulton LMM coefficients.
+
+    Outputs: alphas holds the LMM coefficients on previous solution values
+             betas holds the LMM coefficients on previous RHS values
+             p holds the LMM method order
+    """
+    alphas = np.array([1, -1], dtype=float)
+    betas = np.array([1, 0], dtype=float)
+    p = 1
+    return alphas, betas, p
+
+def AdamsMoulton2():
+    """
+    Usage: alphas, betas, p = AdamsMoulton2()
+
+    Utility routine to return the 2nd order Adams Moulton LMM coefficients.
+
+    Outputs: alphas holds the LMM coefficients on previous solution values
+             betas holds the LMM coefficients on previous RHS values
+             p holds the LMM method order
+    """
+    alphas = np.array([1, -1], dtype=float)
+    betas = np.array([0.5, 0.5], dtype=float)
+    p = 2
+    return alphas, betas, p
+
+def AdamsMoulton3():
+    """
+    Usage: alphas, betas, p = AdamsMoulton3()
+
+    Utility routine to return the 3rd order Adams Moulton LMM coefficients.
+
+    Outputs: alphas holds the LMM coefficients on previous solution values
+             betas holds the LMM coefficients on previous RHS values
+             p holds the LMM method order
+    """
+    alphas = np.array([1, -1, 0], dtype=float)
+    betas = np.array([5.0/12.0, 8.0/12.0, -1.0/12.0], dtype=float)
+    p = 3
+    return alphas, betas, p
+
+def AdamsMoulton4():
+    """
+    Usage: alphas, betas, p = AdamsMoulton4()
+
+    Utility routine to return the 4th order Adams Moulton LMM coefficients.
+
+    Outputs: alphas holds the LMM coefficients on previous solution values
+             betas holds the LMM coefficients on previous RHS values
+             p holds the LMM method order
+    """
+    alphas = np.array([1, -1, 0, 0], dtype=float)
+    betas = np.array([9.0/24.0, 19.0/24.0, -5.0/24.0, 1.0/24.0], dtype=float)
+    p = 4
+    return alphas, betas, p
+
+def BDF1():
+    """
+    Usage: alphas, betas, p = BDF1()
+
+    Utility routine to return the 1st order BDF LMM coefficients.
+
+    Outputs: alphas holds the LMM coefficients on previous solution values
+             betas holds the LMM coefficients on previous RHS values
+             p holds the LMM method order
+    """
+    alphas = np.array([1, -1], dtype=float)
+    betas = np.array([1, 0], dtype=float)
+    p = 1
+    return alphas, betas, p
+
+def BDF2():
+    """
+    Usage: alphas, betas, p = BDF2()
+
+    Utility routine to return the 2nd order BDF LMM coefficients.
+
+    Outputs: alphas holds the LMM coefficients on previous solution values
+             betas holds the LMM coefficients on previous RHS values
+             p holds the LMM method order
+    """
+    alphas = np.array([1, -4.0/3.0, 1.0/3.0], dtype=float)
+    betas = np.array([2.0/3.0, 0, 0], dtype=float)
+    p = 2
+    return alphas, betas, p
+
+def BDF3():
+    """
+    Usage: alphas, betas, p = BDF3()
+
+    Utility routine to return the 3rd order BDF LMM coefficients.
+
+    Outputs: alphas holds the LMM coefficients on previous solution values
+             betas holds the LMM coefficients on previous RHS values
+             p holds the LMM method order
+    """
+    alphas = np.array([1, -18.0/11.0, 9.0/11.0, -2.0/11.0], dtype=float)
+    betas = np.array([6.0/11.0, 0, 0, 0], dtype=float)
+    p = 3
+    return alphas, betas, p
+
+def BDF4():
+    """
+    Usage: alphas, betas, p = BDF4()
+
+    Utility routine to return the 4th order BDF LMM coefficients.
+
+    Outputs: alphas holds the LMM coefficients on previous solution values
+             betas holds the LMM coefficients on previous RHS values
+             p holds the LMM method order
+    """
+    alphas = np.array([1.0, -48.0/25.0, 36.0/25.0, -16.0/25.0, 3.0/25.0], dtype=float)
+    betas = np.array([12.0/25.0, 0, 0, 0, 0], dtype=float)
+    p = 4
+    return alphas, betas, p

@@ -18,7 +18,7 @@ class Explicit_LMM:
     """
     Fixed stepsize explicit linear multistep class
 
-    The four required arguments when constructing an explicit linear
+    The three required arguments when constructing an explicit linear
     multistep object are a function for the IVP right-hand side, and
     the LMM coefficients:
         f = ODE RHS function with calling syntax f(t,y).
@@ -60,7 +60,7 @@ class Explicit_LMM:
         Usage: t, success = explicit_lmm_step(t)
 
         Utility routine to take a single explicit LMM time step,
-        where the input `t` is overwritten by the updated versions.
+        where the input `t` is overwritten by the updated value.
         If success==True then the step succeeded; otherwise it failed.
         """
         y = (self.h * self.beta[1] / self.alpha[0]) * self.fprev[-1] \
@@ -163,10 +163,10 @@ class Explicit_LMM:
                 # perform LMM update
                 t, success = self.explicit_lmm_step(t)
                 if (not success):
-                    print("explicit_lmm error in time step at t =", tcur)
+                    print("explicit_lmm error in time step at t =", t)
                     return Y, False
 
-            # store current results in output arrays
+            # store current result in output array
             Y[iout,:] = self.yprev[-1]
 
         # return with "success" flag

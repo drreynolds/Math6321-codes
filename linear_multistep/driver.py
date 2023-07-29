@@ -13,7 +13,7 @@ import sys
 sys.path.append('..')
 from shared.ImplicitSolver import *
 from Explicit_LMM import *
-#from Implicit_LMM import *
+from Implicit_LMM import *
 
 # problem time interval and parameters
 t0 = 0.0
@@ -93,8 +93,8 @@ def RunTest(stepper, prevsteps, name, implicit):
             errs[idx] = np.linalg.norm(Yerr,np.inf)
             if (success):
                 if (implicit):
-                    print("  solves = %4i  Niters = %6i  NJevals = %5i  abserr = %8.2e" %
-                          (stepper.get_num_solves(), stepper.sol.get_total_iters(),
+                    print("  steps = %4i  Niters = %6i  NJevals = %5i  abserr = %8.2e" %
+                          (stepper.get_num_steps(), stepper.sol.get_total_iters(),
                            stepper.sol.get_total_setups(), errs[idx]))
                 else:
                     print("  steps = %4i  Nrhs = %6i  abserr = %8.2e" %
@@ -123,3 +123,43 @@ RunTest(AB3, 2, 'Adams-Bashforth-3', False)
 alphas, betas, p = AdamsBashforth4()
 AB4 = Explicit_LMM(f, alphas, betas)
 RunTest(AB4, 3, 'Adams-Bashforth-4', False)
+
+# Adams-Moulton-1
+alphas, betas, p = AdamsMoulton1()
+AM1 = Implicit_LMM(f, solver, alphas, betas)
+RunTest(AM1, 0, 'Adams-Moulton-1', True)
+
+# Adams-Moulton-2
+alphas, betas, p = AdamsMoulton2()
+AM2 = Implicit_LMM(f, solver, alphas, betas)
+RunTest(AM2, 0, 'Adams-Moulton-2', True)
+
+# Adams-Moulton-3
+alphas, betas, p = AdamsMoulton3()
+AM3 = Implicit_LMM(f, solver, alphas, betas)
+RunTest(AM3, 1, 'Adams-Moulton-3', True)
+
+# Adams-Moulton-4
+alphas, betas, p = AdamsMoulton4()
+AM4 = Implicit_LMM(f, solver, alphas, betas)
+RunTest(AM4, 2, 'Adams-Moulton-4', True)
+
+# BDF-1
+alphas, betas, p = BDF1()
+BDF_1 = Implicit_LMM(f, solver, alphas, betas)
+RunTest(BDF_1, 0, 'BDF-1', True)
+
+# BDF-2
+alphas, betas, p = BDF2()
+BDF_2 = Implicit_LMM(f, solver, alphas, betas)
+RunTest(BDF_2, 1, 'BDF-2', True)
+
+# BDF-3
+alphas, betas, p = BDF3()
+BDF_3 = Implicit_LMM(f, solver, alphas, betas)
+RunTest(BDF_3, 2, 'BDF-3', True)
+
+# BDF-4
+alphas, betas, p = BDF4()
+BDF_4 = Implicit_LMM(f, solver, alphas, betas)
+RunTest(BDF_4, 3, 'BDF-4', True)
