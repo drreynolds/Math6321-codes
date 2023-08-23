@@ -58,26 +58,24 @@ for n in N:
     idx += 1
     b[0] = bvp.ua
 
-    Arows[idx] = n
+    Arows[idx] = n   # A(n,n) = 1.0
     Acols[idx] = n
-    Avals[idx] = 1   # A(n,n) = 1.0
+    Avals[idx] = 1
     idx += 1
     b[n] = bvp.ub
-    for j in range(1,n):
-        pj = bvp.p(t[j])
-        qj = bvp.q(t[j])
 
+    for j in range(1,n):
         Arows[idx] = j     # A[j,j-1]
         Acols[idx] = j-1
-        Avals[idx] = -1 - 0.5*h*pj
+        Avals[idx] = -1 - 0.5*h*bvp.p(t[j])
         idx += 1
         Arows[idx] = j     # A[j,j]
         Acols[idx] = j
-        Avals[idx] = 2 + h*h*qj
+        Avals[idx] = 2 + h*h*bvp.q(t[j])
         idx += 1
         Arows[idx] = j     # A[j,j+1]
         Acols[idx] = j+1
-        Avals[idx] = -1 + 0.5*h*pj
+        Avals[idx] = -1 + 0.5*h*bvp.p(t[j])
         idx += 1
         b[j] = -h*h*bvp.r(t[j])
     A = sp.csr_matrix(sp.coo_matrix((Avals, (Arows, Acols)), shape=(n+1, n+1)))
