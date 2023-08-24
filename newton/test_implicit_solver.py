@@ -6,7 +6,7 @@ import numpy as np
 import sys
 sys.path.append('..')
 from shared.ImplicitSolver import *
-from scipy.sparse import csc_array
+from scipy.sparse import csc_matrix
 
 # general parameters for all tests
 maxit = 20
@@ -24,39 +24,25 @@ def F(x):
     return np.array([x[0] + 0.004*x[0] - 1e3*x[1]*x[2] - 1.0,
                      x[1] - 0.004*x[0] + 1e3*x[1]*x[2] + 30.0*x[1]*x[1],
                      x[2] - 30.0*x[1]*x[1]])
-# Note: the ImplicitSolver class assumes that the Jacobian of the nonlinear
-# residual has the form J(x) = I + gamma*f_x(t,x), so for this test we will
-# use gamma=1, we'll ignore t, and we'll extract the identity from our desired
-# Jacobian function:
-#     F_x(x) = [ [1.004, -1e3*x[2], -1e3*x[1]],
-#                [-0.004, 1.0 + 1e3*x[2] + 60.0*x[1], 1e3*x[1]],
-#                [0.0, -60.0*x[1], 1.0] ]
-# so we'll set
-#   f_x(t,x) = [ [0.004, -1e3*x[2], -1e3*x[1]],
-#                [-0.004, 1e3*x[2] + 60.0*x[1], 1e3*x[1]],
-#                [0.0, -60.0*x[1], 0.0] ]
-def J_dense(t,x):         # dense Jacobian
+def J_dense(x):         # dense Jacobian
     """ Jacobian (in dense matrix format) of the residual function """
-    return np.array([[0.004, -1e3*x[2], -1e3*x[1]],
-                     [-0.004, 1e3*x[2] + 60.0*x[1], 1e3*x[1]],
-                     [0.0, -60.0*x[1], 0.0]])
-def J_sparse(t,x):
+    return np.array([[1.004, -1e3*x[2], -1e3*x[1]],
+                     [-0.004, 1.0 + 1e3*x[2] + 60.0*x[1], 1e3*x[1]],
+                     [0.0, -60.0*x[1], 1.0]])
+def J_sparse(x):
     """ Jacobian (in sparse matrix format) of the residual function """
-    return csc_array(J_dense(t,x)).toarray()
-def J_matvec(t,x,v):
+    return csc_matrix(J_dense(x))
+def J_matvec(x,v):
     """ Jacobian-vector product function, J@v """
-    return (J_dense(t,x)@v)
+    return (J_dense(x)@v)
 
 # set up ImplicitSolver objects for each Jacobian type:
 # note: initial tolerances and Jacobian update frequency will be over-written during tests
 # note2: we'll manually set up the linear solvers, but this step is typically taken care of
 #        by the time integration method itself.
-dense_solver  = ImplicitSolver(J_dense,  solver_type='dense',  maxiter=maxit, rtol=1e-2, atol=1e-8, Jfreq=1)
-dense_solver.setup_linear_solver(0, 1.0)
-sparse_solver = ImplicitSolver(J_sparse, solver_type='sparse', maxiter=maxit, rtol=1e-2, atol=1e-8, Jfreq=1)
-sparse_solver.setup_linear_solver(0, 1.0)
-gmres_solver  = ImplicitSolver(J_matvec, solver_type='gmres',  maxiter=maxit, rtol=1e-2, atol=1e-8, Jfreq=1)
-gmres_solver.setup_linear_solver(0, 1.0)
+dense_solver  = ImplicitSolver(J_dense,  solver_type='dense',  maxiter=maxit, rtol=1e-2, atol=1e-8, Jfreq=1, steady=True)
+sparse_solver = ImplicitSolver(J_sparse, solver_type='sparse', maxiter=maxit, rtol=1e-2, atol=1e-8, Jfreq=1, steady=True)
+gmres_solver  = ImplicitSolver(J_matvec, solver_type='gmres',  maxiter=maxit, rtol=1e-2, atol=1e-8, Jfreq=1, steady=True)
 
 # call solvers for each tolerance, and in the case of direct linear solvers,
 # for each modified Newton "lag" value
