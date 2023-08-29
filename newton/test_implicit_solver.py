@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script to test the ImplicitSolver class.
+Script to test the ImplicitSolver class for a "steady" problem.
 """
 import numpy as np
 import sys
