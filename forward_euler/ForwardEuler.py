@@ -63,7 +63,7 @@ class ForwardEuler:
                  h optionally holds the requested step size (if it is not
                      provided then the stored value will be used)
                  args holds optional equation parameters used when evaluating
-                     the RHS
+                     the RHS.
         Outputs: Y holds the computed solution at all tspan values,
                      [y(t0), y(t1), ..., y(tf)]
                  success = True if the solver traversed the interval,
