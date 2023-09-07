@@ -18,5 +18,5 @@ Codes are grouped according to type:
 * `linear_multistep` -- higher-order explicit and implicit multi-step ODE integration methods, containing the classes `ExplicitLMM` and `ImplicitLMM`.
 * `bvp` -- two-point boundary-value problem solvers.
 
-Daniel R. Reynolds
-Mathematics @ SMU
+Daniel R. Reynolds  
+Mathematics @ SMU  
