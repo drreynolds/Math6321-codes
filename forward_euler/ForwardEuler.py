@@ -28,15 +28,16 @@ class ForwardEuler:
         # internal data
         self.steps = 0
 
-    def forward_euler_step(self, t, y):
+    def forward_euler_step(self, t, y, args=()):
         """
-        Usage: t, y, success = forward_euler_step(t, y)
+        Usage: t, y, success = forward_euler_step(t, y, args)
 
         Utility routine to take a single forward Euler time step,
         where the inputs (t,y) are overwritten by the updated versions.
+        args is used for optional parameters of your RHS.
         If success==True then the step succeeded; otherwise it failed.
         """
-        y += self.h * self.f(t,y)
+        y += self.h * self.f(t,y,*args)
         t += self.h
         self.steps += 1
         return t, y, True
@@ -49,9 +50,9 @@ class ForwardEuler:
         """ Returns the accumulated number of steps """
         return self.steps
 
-    def Evolve(self, tspan, y0, h=0.0):
+    def Evolve(self, tspan, y0, h=0.0, args=()):
         """
-        Usage: Y, success = Evolve(tspan, y0, h)
+        Usage: Y, success = Evolve(tspan, y0, h, args)
 
         The fixed-step forward Euler evolution routine
 
@@ -61,6 +62,8 @@ class ForwardEuler:
                  y holds the initial condition, y(t0)
                  h optionally holds the requested step size (if it is not
                      provided then the stored value will be used)
+                 args holds optional equation parameters used when evaluating
+                     the RHS.
         Outputs: Y holds the computed solution at all tspan values,
                      [y(t0), y(t1), ..., y(tf)]
                  success = True if the solver traversed the interval,
@@ -100,7 +103,7 @@ class ForwardEuler:
             for n in range(N):
 
                 # perform forward Euler update
-                t, y, success = self.forward_euler_step(t, y)
+                t, y, success = self.forward_euler_step(t, y, args)
                 if (not success):
                     print("forward_euler error in time step at t =", t)
                     return Y, False

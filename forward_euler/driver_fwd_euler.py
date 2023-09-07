@@ -25,9 +25,10 @@ def f1(t,y):
 def ytrue1(t):
     """ Analytical solution """
     return np.array([np.exp(-t)])
-def f2(t,y):
-    """ ODE RHS function """
-    return np.array([(y[0]+t*t-2.0)/(t+1.0)])
+
+def f2(t,y, alpha, beta):
+    """ ODE RHS function (with parameters alpha and beta)"""
+    return np.array([(alpha*y[0]+t*t-2.0*beta)/(t+1.0)])
 def ytrue2(t):
     """ Analytical solution """
     return np.array([t*t + 2.0*t + 2.0 - 2.0*(t+1.0)*np.log(t+1.0)])
@@ -77,7 +78,14 @@ for idx, h in enumerate(hvals):
     y0 = Y2true[0,:]
     print("  h = ", h, ":")
     FE2.reset()
-    Y, success = FE2.Evolve(tspan, y0, h)
+    alpha = 1.0
+    beta = 1.0
+    # Here when calling our rhs (f2) notice we have parameters alpha
+    # and beta. At within the ForwardEuler.py we will call f2(t,y,*args)
+    # Here *(<tuple>) is the unpacking operator. This will unpack the args tuple into
+    # the third and fourth arguments of f2. This is the same implementation
+    # as in standard python ODE packages.
+    Y, success = FE2.Evolve(tspan, y0, h, args=(alpha, beta))
 
     # output solution, errors, and overall error
     Yerr = np.abs(Y-Y2true)
