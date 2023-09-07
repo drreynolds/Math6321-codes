@@ -60,6 +60,8 @@ for lam in [-1.0, -10.0, -50.0]:
         print("  h = ",h,",  lambda = ", lam,":", sep='')
         BE.reset()
         BE.sol.reset()
+        # Note that this is where we provide the rhs function parameter lam -- the "," is
+        # required to ensure that args is an iterable (and not a float).
         Y, success = BE.Evolve(tspan, y0, h, args=(lam,))
         Yerr = np.abs(Y-Ytrue)
         errs[idx] = np.linalg.norm(Yerr,np.inf)

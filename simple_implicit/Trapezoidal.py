@@ -41,7 +41,7 @@ class Trapezoidal:
 
         Utility routine to take a single trapezoidal time step,
         where the inputs (t,y) are overwritten by the updated versions.
-        args is used for optional parameters of your RHS.
+        args is used for optional parameters of the RHS.
         If success==True then the step succeeded; otherwise it failed.
         """
 

@@ -54,9 +54,9 @@ class IRK:
             (np.size(A,1) != self.s)):
             raise ValueError("IRK ERROR: incompatible Butcher table supplied")
 
-    def irk_step(self, t, y):
+    def irk_step(self, t, y, args=()):
         """
-        Usage: t, y, success = irk_step(t, y)
+        Usage: t, y, success = irk_step(t, y, args)
 
         Utility routine to take a single fully-implicit RK time step,
         where the inputs (t,y) are overwritten by the updated versions.
@@ -81,7 +81,7 @@ class IRK:
             for j in range(s):
                 tj = t + self.c[j] * self.h
                 zj = np.array(z[m*j:m*(j+1)])
-                self.k[j,:] = self.f(tj, zj)
+                self.k[j,:] = self.f(tj, zj, *args)
                 for i in range(s):
                     resid[m*i:m*(i+1)] -= self.h * self.A[i,j] * self.k[j,:]
             return resid
@@ -93,7 +93,7 @@ class IRK:
                 for j in range(s):
                     tj = t + self.c[j] * self.h
                     zj = np.array(z[m*j:m*(j+1)])
-                    Jj = self.sol.f_y(tj, zj)
+                    Jj = self.sol.f_y(tj, zj, *args)
                     for i in range(s):
                         Jac[m*i:m*(i+1),m*j:m*(j+1)] -= self.h * self.A[i,j] * Jj
                 try:
@@ -108,7 +108,7 @@ class IRK:
                 for j in range(s):
                     tj = t + self.c[j] * self.h
                     zj = np.array(z[m*j:m*(j+1)])
-                    Jj = self.sol.f_y(tj, zj)
+                    Jj = self.sol.f_y(tj, zj, *args)
                     for i in range(s):
                         Jac[m*i:m*(i+1),m*j:m*(j+1)] -= self.h * self.A[i,j] * Jj
                 try:
@@ -126,7 +126,7 @@ class IRK:
                         zi = np.array(z[m*i:m*(i+1)])
                         for j in range(s):
                             vj = np.array(v[m*j:m*(j+1)])
-                            Jijv = self.sol.f_y(ti, zi, vj)
+                            Jijv = self.sol.f_y(ti, zi, vj, *args)
                             Jvprod[m*i:m*(i+1)] -= self.h * self.A[i,j] * Jijv
                     return Jvprod
                 J = LinearOperator((z.size,z.size), matvec=Jv)
@@ -142,7 +142,7 @@ class IRK:
                         zi = np.array(z[m*i:m*(i+1)])
                         for j in range(s):
                             vj = np.array(v[m*j:m*(j+1)])
-                            Jijv = self.sol.f_y(ti, zi, vj)
+                            Jijv = self.sol.f_y(ti, zi, vj, *args)
                             Jvprod[m*i:m*(i+1)] -= self.h * self.A[i,j] * Jijv
                     return Jvprod
                 J = LinearOperator((z.size,z.size), matvec=Jv)
@@ -180,9 +180,9 @@ class IRK:
         """ Returns the accumulated number of implicit solves """
         return self.nsol
 
-    def Evolve(self, tspan, y0, h=0.0):
+    def Evolve(self, tspan, y0, h=0.0, args=()):
         """
-        Usage: Y, success = Evolve(tspan, y0, h)
+        Usage: Y, success = Evolve(tspan, y0, h, args)
 
         The fixed-step IRK evolution routine.
 
@@ -192,6 +192,8 @@ class IRK:
                  y holds the initial condition, y(t0)
                  h optionally holds the requested step size (if it is not
                      provided then the stored value will be used)
+                 args holds optional equation parameters used when evaluating
+                     the RHS.
         Outputs: Y holds the computed solution at all tspan values,
                      [y(t0), y(t1), ..., y(tf)]
                  success = True if the solver traversed the interval,
@@ -234,7 +236,7 @@ class IRK:
             for n in range(N):
 
                 # perform diagonally-implicit Runge--Kutta update
-                t, y, success = self.irk_step(t, y)
+                t, y, success = self.irk_step(t, y, args)
                 if (not success):
                     print("IRK::Evolve error in time step at t =", tcur)
                     return Y, False

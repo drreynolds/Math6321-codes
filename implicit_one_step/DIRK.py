@@ -54,12 +54,13 @@ class DIRK:
             (np.size(A,1) != self.s) or (np.linalg.norm(A - np.tril(A,0), np.inf) > 1e-14)):
             raise ValueError("DIRK ERROR: incompatible Butcher table supplied")
 
-    def dirk_step(self, t, y):
+    def dirk_step(self, t, y, args=()):
         """
-        Usage: t, y, success = dirk_step(t, y)
+        Usage: t, y, success = dirk_step(t, y, args)
 
         Utility routine to take a single diagonally-implicit RK time step,
         where the inputs (t,y) are overwritten by the updated versions.
+        args is used for optional parameters of the RHS.
         If success==True then the step succeeded; otherwise it failed.
         """
 
@@ -73,8 +74,8 @@ class DIRK:
 
             # construct implicit residual and Jacobian solver for this stage
             tstage = t + self.h*self.c[i]
-            F = lambda zcur: zcur - self.data - self.h * self.A[i,i] * self.f(tstage, zcur)
-            self.sol.setup_linear_solver(tstage, -self.h * self.A[i,i])
+            F = lambda zcur: zcur - self.data - self.h * self.A[i,i] * self.f(tstage, zcur, *args)
+            self.sol.setup_linear_solver(tstage, -self.h * self.A[i,i], args)
 
             # perform implicit solve, and return on solver failure
             self.z, iters, success = self.sol.solve(F, y)
@@ -83,7 +84,7 @@ class DIRK:
                 return t, y, False
 
             # store RHS at this stage
-            self.k[i,:] = self.f(tstage, self.z)
+            self.k[i,:] = self.f(tstage, self.z, *args)
 
         # update time step solution
         for i in range(self.s):
@@ -105,9 +106,9 @@ class DIRK:
         """ Returns the accumulated number of implicit solves """
         return self.nsol
 
-    def Evolve(self, tspan, y0, h=0.0):
+    def Evolve(self, tspan, y0, h=0.0, args=()):
         """
-        Usage: Y, success = Evolve(tspan, y0, h)
+        Usage: Y, success = Evolve(tspan, y0, h, args)
 
         The fixed-step DIRK evolution routine
 
@@ -117,6 +118,8 @@ class DIRK:
                  y holds the initial condition, y(t0)
                  h optionally holds the requested step size (if it is not
                      provided then the stored value will be used)
+                 args holds optional equation parameters used when evaluating
+                     the RHS.
         Outputs: Y holds the computed solution at all tspan values,
                      [y(t0), y(t1), ..., y(tf)]
                  success = True if the solver traversed the interval,
@@ -160,7 +163,7 @@ class DIRK:
             for n in range(N):
 
                 # perform diagonally-implicit Runge--Kutta update
-                t, y, success = self.dirk_step(t, y)
+                t, y, success = self.dirk_step(t, y, args)
                 if (not success):
                     print("DIRK::Evolve error in time step at t =", tcur)
                     return Y, False
