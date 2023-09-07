@@ -55,12 +55,13 @@ class Explicit_LMM:
             raise ValueError("Explicit_LMM ERROR: alpha and beta do not have the same length, (",
                              alpha.size, " != ", beta.size, ")")
 
-    def explicit_lmm_step(self, t):
+    def explicit_lmm_step(self, t, args=()):
         """
-        Usage: t, success = explicit_lmm_step(t)
+        Usage: t, success = explicit_lmm_step(t, args)
 
         Utility routine to take a single explicit LMM time step,
         where the input `t` is overwritten by the updated value.
+        args is used for optional parameters of the RHS.
         If success==True then the step succeeded; otherwise it failed.
         """
         y = (self.h * self.beta[1] / self.alpha[0]) * self.fprev[-1] \
@@ -74,7 +75,7 @@ class Explicit_LMM:
         self.yprev.pop(0)
         self.yprev.append(y)
         self.fprev.pop(0)
-        self.fprev.append(self.f(t,y))
+        self.fprev.append(self.f(t, y, *args))
         self.nrhs += 1
         self.steps += 1
         return t, True
@@ -93,9 +94,9 @@ class Explicit_LMM:
         return self.nrhs
 
 
-    def Evolve(self, tspan, y0, h=0.0):
+    def Evolve(self, tspan, y0, h=0.0, args=()):
         """
-        Usage: Y, success = Evolve(tspan, y0, h)
+        Usage: Y, success = Evolve(tspan, y0, h, args)
 
         The fixed-step explicit linear multistep evolution routine.
 
@@ -109,7 +110,8 @@ class Explicit_LMM:
                      sorted as [y0(t0-(k-2)*h), ... y0(t0-h), y0(t0)]
                  h optionally holds the requested step size (if it is not
                      provided then the stored value will be used)
-
+                 args holds optional equation parameters used when evaluating
+                     the RHS.
         Outputs: Y holds the computed solution at all tspan values,
                      [y(t0), y(t1), ..., y(tf)]
                  success = True if the solver traversed the interval,
@@ -145,7 +147,7 @@ class Explicit_LMM:
         self.yprev = []
         for i in range(self.k-1):
             self.yprev.append(y0[i,:])
-            self.fprev.append(self.f(tspan[0]-(self.k-2-i)*self.h, y0[i,:]))
+            self.fprev.append(self.f(tspan[0]-(self.k-2-i)*self.h, y0[i,:], *args))
             self.nrhs += 1
 
         # loop over desired output times
@@ -161,7 +163,7 @@ class Explicit_LMM:
             for n in range(N):
 
                 # perform LMM update
-                t, success = self.explicit_lmm_step(t)
+                t, success = self.explicit_lmm_step(t, args)
                 if (not success):
                     print("explicit_lmm error in time step at t =", t)
                     return Y, False

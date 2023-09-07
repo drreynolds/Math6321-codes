@@ -18,7 +18,6 @@ from Implicit_LMM import *
 # problem time interval and parameters
 t0 = 0.0
 tf = 5.0
-lam = 0.0
 
 # flag to switch between dense and iterative linear solvers
 iterative = False
@@ -27,13 +26,13 @@ iterative = False
 def ytrue(t):
     """ Generates a numpy array containing the true solution to the IVP at a given input t. """
     return np.array([np.sin(t) + np.cos(t)])
-def f(t,y):
+def f(t,y,lam):
     """ Right-hand side function, f(t,y), for the IVP """
     return np.array([lam*y[0] + (1.0-lam)*np.cos(t) - (1.0+lam)*np.sin(t)])
-def J(t,y):
+def J(t,y,lam):
     """ Jacobian (in dense matrix format) of the right-hand side function, J(t,y) = df/dy """
     return np.array( [ [lam] ] )
-def Jv(t,y,v):
+def Jv(t,y,v,lam):
     """ Jacobian (in dense matrix format) of the right-hand side function, J(t,y) = df/dy """
     return np.array( [lam*v[0]] )
 
@@ -60,23 +59,6 @@ def RunTest(stepper, prevsteps, name, implicit):
     # loop over stiffness values
     for lam in lambdas:
 
-        # update rhs function, Jacobian, integrators, and implicit solver
-        def f(t,y):
-            """ Right-hand side function, f(t,y), for the IVP """
-            return np.array([lam*y[0] + (1.0-lam)*np.cos(t) - (1.0+lam)*np.sin(t)])
-        stepper.f = f
-        if (implicit):
-            def J(t,y):
-                """ Jacobian (dense) of the right-hand side function, J(t,y) = df/dy """
-                return np.array( [ [lam] ] )
-            def Jv(t,y,v):
-                """ Jacobian-vector product, J(t,y)@v = (df/dy)@v """
-                return np.array( [lam*v[0]] )
-            if (iterative):
-                stepper.sol.f_y = Jv
-            else:
-                stepper.sol.f_y = J
-
         print("  lambda = " , lam, ":", sep='')
         for idx, h in enumerate(hvals):
             print("    h = %.3f:" % (h), sep='', end='')
@@ -88,7 +70,9 @@ def RunTest(stepper, prevsteps, name, implicit):
             y0[-1,:] = ytrue(t0)
             for k in range(1,prevsteps+1):
                 y0[-1-k,:] = ytrue(t0-k*h)
-            Y, success = stepper.Evolve(tspan, y0, h)
+            # Note that this is where we provide the rhs function parameter lam -- the "," is
+            # required to ensure that args is an iterable (and not a float).
+            Y, success = stepper.Evolve(tspan, y0, h, args=(lam,))
             Yerr = np.abs(Y-Ytrue)
             errs[idx] = np.linalg.norm(Yerr,np.inf)
             if (success):
