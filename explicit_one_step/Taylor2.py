@@ -36,19 +36,20 @@ class Taylor2:
         self.steps = 0
         self.nrhs = 0
 
-    def Taylor2_step(self, t, y):
+    def Taylor2_step(self, t, y, args=()):
         """
-        Usage: t, y, success = Taylor2_step(t, y)
+        Usage: t, y, success = Taylor2_step(t, y, args)
 
         Utility routine to take a single second-order Taylor method step,
         where the inputs (t,y) are overwritten by the updated versions.
+        args is used for optional parameters of the RHS and its derivatives.
         If success==True then the step succeeded; otherwise it failed.
         """
 
         # evaluate RHS function and its derivatives
-        self.fn = self.f(t,y)
-        self.ft = self.f_t(t,y)
-        self.fy = self.f_y(t,y)
+        self.fn = self.f(t, y, *args)
+        self.ft = self.f_t(t, y, *args)
+        self.fy = self.f_y(t, y, *args)
         self.nrhs += 3
 
         # update time step solution and tcur
@@ -70,7 +71,7 @@ class Taylor2:
         """ Returns the accumulated number of RHS evaluations """
         return self.nrhs
 
-    def Evolve(self, tspan, y0, h=0.0):
+    def Evolve(self, tspan, y0, h=0.0, args=()):
         """
         Usage: Y, success = Evolve(tspan, y0, h)
 
@@ -82,6 +83,8 @@ class Taylor2:
                  y holds the initial condition, y(t0)
                  h optionally holds the requested step size (if it is not
                      provided then the stored value will be used)
+                 args holds optional equation parameters used when evaluating
+                     the RHS.
         Outputs: Y holds the computed solution at all tspan values,
                      [y(t0), y(t1), ..., y(tf)]
                  success = True if the solver traversed the interval,
@@ -125,7 +128,7 @@ class Taylor2:
             for n in range(N):
 
                 # perform explicit Runge--Kutta update
-                t, y, success = self.Taylor2_step(t, y)
+                t, y, success = self.Taylor2_step(t, y, args)
                 if (not success):
                     print("erk error in time step at t =", t)
                     return Y, False

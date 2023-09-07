@@ -46,23 +46,24 @@ class ERK:
             (np.size(A,1) != self.s) or (np.linalg.norm(A - np.tril(A,-1), np.inf) > 1e-14)):
             raise ValueError("ERK ERROR: incompatible Butcher table supplied")
 
-    def erk_step(self, t, y):
+    def erk_step(self, t, y, args=()):
         """
-        Usage: t, y, success = erk_step(t, y)
+        Usage: t, y, success = erk_step(t, y, args)
 
         Utility routine to take a single explicit RK time step,
         where the inputs (t,y) are overwritten by the updated versions.
+        args is used for optional parameters of the RHS.
         If success==True then the step succeeded; otherwise it failed.
         """
 
         # loop over stages, computing RHS vectors
-        self.k[0,:] = self.f(t,y)
+        self.k[0,:] = self.f(t, y, *args)
         self.nrhs += 1
         for i in range(1,self.s):
             self.z = np.copy(y)
             for j in range(i):
                 self.z += self.h * self.A[i,j] * self.k[j,:]
-            self.k[i,:] = self.f(t + self.c[i] * self.h, self.z)
+            self.k[i,:] = self.f(t + self.c[i] * self.h, self.z, *args)
             self.nrhs += 1
 
         # update time step solution and tcur
@@ -85,9 +86,9 @@ class ERK:
         """ Returns the accumulated number of RHS evaluations """
         return self.nrhs
 
-    def Evolve(self, tspan, y0, h=0.0):
+    def Evolve(self, tspan, y0, h=0.0, args=()):
         """
-        Usage: Y, success = Evolve(tspan, y0, h)
+        Usage: Y, success = Evolve(tspan, y0, h, args)
 
         The fixed-step explicit Runge--Kutta evolution routine.
 
@@ -97,6 +98,8 @@ class ERK:
                  y holds the initial condition, y(t0)
                  h optionally holds the requested step size (if it is not
                      provided then the stored value will be used)
+                 args holds optional equation parameters used when evaluating
+                     the RHS.
         Outputs: Y holds the computed solution at all tspan values,
                      [y(t0), y(t1), ..., y(tf)]
                  success = True if the solver traversed the interval,
@@ -139,7 +142,7 @@ class ERK:
             for n in range(N):
 
                 # perform explicit Runge--Kutta update
-                t, y, success = self.erk_step(t, y)
+                t, y, success = self.erk_step(t, y, args)
                 if (not success):
                     print("erk error in time step at t =", t)
                     return Y, False

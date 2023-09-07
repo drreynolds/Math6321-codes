@@ -34,10 +34,10 @@ class ForwardEuler:
 
         Utility routine to take a single forward Euler time step,
         where the inputs (t,y) are overwritten by the updated versions.
-        args is used for optional parameters of your RHS.
+        args is used for optional parameters of the RHS.
         If success==True then the step succeeded; otherwise it failed.
         """
-        y += self.h * self.f(t,y,*args)
+        y += self.h * self.f(t, y, *args)
         t += self.h
         self.steps += 1
         return t, y, True
