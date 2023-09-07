@@ -35,24 +35,25 @@ class Trapezoidal:
         self.steps = 0
         self.fold = 0
 
-    def trapezoidal_step(self, t, y):
+    def trapezoidal_step(self, t, y, args=()):
         """
-        Usage: t, y, success = trapezoidal_step(t, y)
+        Usage: t, y, success = trapezoidal_step(t, y, args)
 
         Utility routine to take a single trapezoidal time step,
         where the inputs (t,y) are overwritten by the updated versions.
+        args is used for optional parameters of your RHS.
         If success==True then the step succeeded; otherwise it failed.
         """
 
         # compute RHS and store in fold
-        self.fold = self.f(t,y)
+        self.fold = self.f(t,y,*args)
 
         # update t for this step
         t += self.h
 
         # create implicit residual and Jacobian solver for this step
-        F = lambda ynew: ynew - y - 0.5*self.h * self.fold - 0.5*self.h * self.f(t,ynew)
-        self.sol.setup_linear_solver(t, -0.5*self.h)
+        F = lambda ynew: ynew - y - 0.5*self.h * self.fold - 0.5*self.h * self.f(t, ynew, *args)
+        self.sol.setup_linear_solver(t, -0.5*self.h, args)
 
         # perform implicit solve, and return on solver failure
         y, iters, success = self.sol.solve(F, y)
@@ -69,9 +70,9 @@ class Trapezoidal:
         """ Returns the accumulated number of steps """
         return self.steps
 
-    def Evolve(self, tspan, y0, h=0.0):
+    def Evolve(self, tspan, y0, h=0.0, args=()):
         """
-        Usage: Y, success = Evolve(tspan, y0, h)
+        Usage: Y, success = Evolve(tspan, y0, h, args)
 
         The fixed-step trapezoidal evolution routine
 
@@ -81,6 +82,8 @@ class Trapezoidal:
                  y holds the initial condition, y(t0)
                  h optionally holds the requested step size (if it is not
                      provided then the stored value will be used)
+                 args holds optional equation parameters used when evaluating
+                     the RHS.
         Outputs: Y holds the computed solution at all tspan values,
                      [y(t0), y(t1), ..., y(tf)]
                  success = True if the solver traversed the interval,
@@ -120,7 +123,7 @@ class Trapezoidal:
             for n in range(N):
 
                 # perform trapezoidal step
-                t, y, success = self.trapezoidal_step(t, y)
+                t, y, success = self.trapezoidal_step(t, y, args)
                 if (not success):
                     print("Trapezoidal::Evolve error in time step at t =", t)
                     return Y, False

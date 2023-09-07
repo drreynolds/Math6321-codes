@@ -33,12 +33,13 @@ class BackwardEuler:
         # internal data
         self.steps = 0
 
-    def backward_euler_step(self, t, y):
+    def backward_euler_step(self, t, y, args=()):
         """
-        Usage: t, y, success = backward_euler_step(t, y)
+        Usage: t, y, success = backward_euler_step(t, y, args)
 
         Utility routine to take a single backward Euler time step,
         where the inputs (t,y) are overwritten by the updated versions.
+        args is used for optional parameters of your RHS.
         If success==True then the step succeeded; otherwise it failed.
         """
 
@@ -46,8 +47,8 @@ class BackwardEuler:
         t += self.h
 
         # create implicit residual and Jacobian solver for this step
-        F = lambda ynew: ynew - y - self.h * self.f(t,ynew)
-        self.sol.setup_linear_solver(t, -self.h)
+        F = lambda ynew: ynew - y - self.h * self.f(t, ynew, *args)
+        self.sol.setup_linear_solver(t, -self.h, args)
 
         # perform implicit solve, and return on solver failure
         y, iters, success = self.sol.solve(F, y)
@@ -64,9 +65,9 @@ class BackwardEuler:
         """ Returns the accumulated number of steps """
         return self.steps
 
-    def Evolve(self, tspan, y0, h=0.0):
+    def Evolve(self, tspan, y0, h=0.0, args=()):
         """
-        Usage: Y, success = Evolve(tspan, y0, h)
+        Usage: Y, success = Evolve(tspan, y0, h, args)
 
         The fixed-step backward Euler evolution routine
 
@@ -76,6 +77,8 @@ class BackwardEuler:
                  y holds the initial condition, y(t0)
                  h optionally holds the requested step size (if it is not
                      provided then the stored value will be used)
+                 args holds optional equation parameters used when evaluating
+                     the RHS.
         Outputs: Y holds the computed solution at all tspan values,
                      [y(t0), y(t1), ..., y(tf)]
                  success = True if the solver traversed the interval,
@@ -115,7 +118,7 @@ class BackwardEuler:
             for n in range(N):
 
                 # perform backward Euler step
-                t, y, success = self.backward_euler_step(t, y)
+                t, y, success = self.backward_euler_step(t, y, args)
                 if (not success):
                     print("BackwardEuler::Evolve error in time step at t =", t)
                     return Y, False

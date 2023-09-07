@@ -20,16 +20,15 @@ from Trapezoidal import *
 # problem time interval and parameters
 t0 = 0.0
 tf = 5.0
-lam = 0.0
 
 # problem-defining functions
 def ytrue(t):
     """ Generates a numpy array containing the true solution to the IVP at a given input t. """
     return np.array([np.sin(t) + np.cos(t)])
-def f(t,y):
+def f(t,y,lam):
     """ Right-hand side function, f(t,y), for the IVP """
     return np.array([lam*y[0] + (1.0-lam)*np.cos(t) - (1.0+lam)*np.sin(t)])
-def J(t,y):
+def J(t,y,lam):
     """ Jacobian (in dense matrix format) of the right-hand side function, J(t,y) = df/dy """
     return np.array( [ [lam] ] )
 
@@ -55,26 +54,13 @@ FE = ForwardEuler(f)
 # loop over stiffness values
 for lam in [-1.0, -10.0, -50.0]:
 
-    # update rhs function, Jacobian, integrators, and implicit solver
-    def f(t,y):
-        """ Right-hand side function, f(t,y), for the IVP """
-        return np.array([lam*y[0] + (1.0-lam)*np.cos(t) - (1.0+lam)*np.sin(t)])
-    def J(t,y):
-        """ Jacobian (in dense matrix format) of the right-hand side function, J(t,y) = df/dy """
-        return np.array( [ [lam] ] )
-    BE.f = f
-    BE.sol.f_y = J
-    Tr.f = f
-    Tr.sol.f_y = J
-    FE.f = f
-
     # backward Euler tests
     print(colored("\nbackward Euler tests:", "yellow", attrs=["bold"]))
     for idx, h in enumerate(hvals):
         print("  h = ",h,",  lambda = ", lam,":", sep='')
         BE.reset()
         BE.sol.reset()
-        Y, success = BE.Evolve(tspan, y0, h)
+        Y, success = BE.Evolve(tspan, y0, h, args=(lam,))
         Yerr = np.abs(Y-Ytrue)
         errs[idx] = np.linalg.norm(Yerr,np.inf)
         if (success):
@@ -101,7 +87,7 @@ for lam in [-1.0, -10.0, -50.0]:
         print("  h = ",h,",  lambda = ", lam,":", sep='')
         Tr.reset()
         Tr.sol.reset()
-        Y, success = Tr.Evolve(tspan, y0, h)
+        Y, success = Tr.Evolve(tspan, y0, h, args=(lam,))
         Yerr = np.abs(Y-Ytrue)
         errs[idx] = np.linalg.norm(Yerr,np.inf)
         if (success):
@@ -127,7 +113,7 @@ for lam in [-1.0, -10.0, -50.0]:
     for idx, h in enumerate(hvals):
         print("  h = ",h,",  lambda = ", lam,":", sep='')
         FE.reset()
-        Y, success = FE.Evolve(tspan, y0, h)
+        Y, success = FE.Evolve(tspan, y0, h, args=(lam,))
         Yerr = np.abs(Y-Ytrue)
         errs[idx] = np.linalg.norm(Yerr,np.inf)
         if (success):

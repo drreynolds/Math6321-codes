@@ -13,13 +13,13 @@ class ImplicitSolver:
     The two required arguments when constructing an ImplicitSolver object are a function
     for the Jacobian (or Jacobian-vector product) of the ODE right-hand side function, f_y,
     and a key denoting the type of solver to construct:
-        'dense'  = the function f_y(t,y) produces a 2D numpy nd-array of Jacobian entries
+        'dense'  = the function f_y(t,y,args) produces a 2D numpy nd-array of Jacobian entries
                    (a dense LU-factorization-based linear solver is used).
-        'sparse' = the function f_y(t,y) produces a scipy.linalg.sparse matrix of Jacobian
+        'sparse' = the function f_y(t,y,args) produces a scipy.linalg.sparse matrix of Jacobian
                    entries (a sparse LU-factorization-based linear solver is used).
-        'gmres'  = the function f_y(t,y,v) computes the product of the Jacobian and the
+        'gmres'  = the function f_y(t,y,v,args) computes the product of the Jacobian and the
                    vector v (an un-preconditioned GMRES linear solver is used)
-        'pgmres' = the function f_y(t,y,v) computes the product of the Jacobian and the
+        'pgmres' = the function f_y(t,y,v,args) computes the product of the Jacobian and the
                    vector v, and the optional input function p_setup(t,y,gamma,rtol,abstol)
                    creates a scipy.sparse.linalg.LinearOperator object to apply the
                    preconditioner (a preconditioned GMRES linear solver is used)
@@ -65,12 +65,14 @@ class ImplicitSolver:
         if steady:
             self.setup_steady_linear_solver()
 
-    def setup_linear_solver(self, t, gamma):
+    def setup_linear_solver(self, t, gamma, args=()):
         """
         Creates a function that users can call prior to solve(), to construct
         scipy.sparse.linalg.LinearOperator objects as needed for the Newton-Raphson
         method.  This is designed to be called by the implicit time integrator at
         each implicit step and/or stage.
+
+        args is used for user-provided optional parameters of their Jacobian, f_y.
 
         If the solver will be used for steady-state equations, then this need not be
         called by the user, as it will be called internally
@@ -85,7 +87,7 @@ class ImplicitSolver:
 
         if (self.solver_type == 'dense'):
             def J(y,rtol,abstol):
-                Jac = np.eye(y.size) + gamma*self.f_y(t,y)
+                Jac = np.eye(y.size) + gamma*self.f_y(t,y,*args)
                 try:
                     lu, piv = lu_factor(Jac)
                 except:
@@ -94,7 +96,7 @@ class ImplicitSolver:
                 return LinearOperator((y.size,y.size), matvec=Jsolve)
         elif (self.solver_type == 'sparse'):
             def J(y,rtol,abstol):
-                Jac = identity(y.size) + gamma*self.f_y(t,y)
+                Jac = identity(y.size) + gamma*self.f_y(t,y,*args)
                 try:
                     Jfactored = factorized(Jac)
                 except:
@@ -103,23 +105,25 @@ class ImplicitSolver:
                 return LinearOperator((y.size,y.size), matvec=Jsolve)
         elif (self.solver_type == 'gmres'):
             def J(y,rtol,abstol):
-                Jv = lambda v: v + gamma*self.f_y(t,y,v)
+                Jv = lambda v: v + gamma*self.f_y(t,y,v,*args)
                 J = LinearOperator((y.size,y.size), matvec=Jv)
                 Jsolve = lambda b: gmres(J, b, tol=rtol, atol=abstol)[0]
                 return LinearOperator((y.size,y.size), matvec=Jsolve)
         elif (self.solver_type == 'pgmres'):
             def J(y,rtol,abstol):
                 P = self.prec(t,y,gamma,rtol,abstol)
-                Jv = lambda v: v + gamma*self.f_y(t,y,v)
+                Jv = lambda v: v + gamma*self.f_y(t,y,v,*args)
                 J = LinearOperator((y.size,y.size), matvec=Jv)
                 Jsolve = lambda b: gmres(J, b, tol=rtol, atol=abstol, M=P)[0]
                 return LinearOperator((y.size,y.size), matvec=Jsolve)
         self.linear_solver = J
 
-    def setup_steady_linear_solver(self):
+    def setup_steady_linear_solver(self, args=()):
         """
         Constructs a scipy.sparse.linalg.LinearOperator object that will be used
         within Newton-Raphson method.
+
+        args is used for user-provided optional parameters of their Jacobian, f_y.
         """
         import numpy as np
         from scipy.linalg import lu_factor
@@ -131,7 +135,7 @@ class ImplicitSolver:
         if (self.solver_type == 'dense'):
             def J(y,rtol,abstol):
                 try:
-                    lu, piv = lu_factor(self.f_y(y))
+                    lu, piv = lu_factor(self.f_y(y,*args))
                 except:
                     raise RuntimeError("Dense Jacobian factorization failure")
                 Jsolve = lambda b: lu_solve((lu, piv), b)
@@ -139,21 +143,21 @@ class ImplicitSolver:
         elif (self.solver_type == 'sparse'):
             def J(y,rtol,abstol):
                 try:
-                    Jfactored = factorized(self.f_y(y))
+                    Jfactored = factorized(self.f_y(y,*args))
                 except:
                     raise RuntimeError("Sparse Jacobian factorization failure")
                 Jsolve = lambda b: Jfactored(b)
                 return LinearOperator((y.size,y.size), matvec=Jsolve)
         elif (self.solver_type == 'gmres'):
             def J(y,rtol,abstol):
-                Jv = lambda v: self.f_y(y,v)
+                Jv = lambda v: self.f_y(y,v,*args)
                 J = LinearOperator((y.size,y.size), matvec=Jv)
                 Jsolve = lambda b: gmres(J, b, tol=rtol, atol=abstol)[0]
                 return LinearOperator((y.size,y.size), matvec=Jsolve)
         elif (self.solver_type == 'pgmres'):
             def J(y,rtol,abstol):
                 P = self.prec(0,y,1,rtol,abstol)
-                Jv = lambda v: self.f_y(y,v)
+                Jv = lambda v: self.f_y(y,v,*args)
                 J = LinearOperator((y.size,y.size), matvec=Jv)
                 Jsolve = lambda b: gmres(J, b, tol=rtol, atol=abstol, M=P)[0]
                 return LinearOperator((y.size,y.size), matvec=Jsolve)
