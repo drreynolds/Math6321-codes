@@ -16,9 +16,9 @@ t0 = 0.0
 tf = 5.0
 
 # problem-definining functions
-def f(t,y):
-    """ ODE RHS function """
-    return np.array([-np.exp(-t)*y[0]])
+def f(t,y,alpha):
+    """ ODE RHS function (with parameter alpha) """
+    return np.array([-alpha*np.exp(-t)*y[0]])
 def ytrue(t):
     """ Analytical solution """
     return np.array([np.exp(np.exp(-t)-1.0)])
@@ -47,7 +47,12 @@ for rtol in rtols:
     # set the relative tolerance, and call the solver
     print("  rtol = ", rtol)
     AE.set_rtol(rtol)
-    Y, success = AE.Evolve(tspan, y0)
+    alpha = 1.0
+    # Here when calling our rhs we have a single parameter alpha.
+    # Note that within AdaptEuler.py we call f(t,y,*args) -- here *(<tuple>) is the unpacking operator.
+    # This will unpack the args tuple into the third (and any remaining) arguments of f.
+    # Note that the "," here is required to ensure that args is an iterable (and not a float).
+     Y, success = AE.Evolve(tspan, y0, args=(alpha,))
     if (not success):
         print("    solve failed at this tolerance")
         continue

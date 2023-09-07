@@ -59,9 +59,9 @@ class AdaptEuler:
             w[i] = self.bias / (self.atol[i] + self.rtol * np.abs(y[i]))
         return w
 
-    def Evolve(self, tspan, y0, h=0.0):
+    def Evolve(self, tspan, y0, h=0.0, args=()):
         """
-        Usage: Y, success = Evolve(tspan, y0, h)
+        Usage: Y, success = Evolve(tspan, y0, h, args)
 
         The adaptive forward Euler time step evolution routine
 
@@ -70,6 +70,8 @@ class AdaptEuler:
                      [t0, t1, ..., tf]
                  y holds the initial condition, y(t0)
                  h optionally holds the requested initial step size
+                 args holds optional equation parameters used when evaluating
+                     the RHS.
         Outputs: Y holds the computed solution at all tspan values,
                      [y(t0), y(t1), ..., y(tf)]
                  success = True if the solver traversed the interval,
@@ -103,7 +105,7 @@ class AdaptEuler:
         if (self.h == 0.0):
 
             # get ||y'(t0)||
-            fn = self.f(t, y)
+            fn = self.f(t, y, *args)
 
             # estimate initial h value via linearization, safety factor
             self.error_norm = max(np.linalg.norm(fn*self.w, np.inf), 1.e-8)
@@ -128,12 +130,12 @@ class AdaptEuler:
                 y2 = y.copy()
 
                 # get RHS at this time, perform full/half step updates
-                fn = self.f(t, y)
+                fn = self.f(t, y, *args)
                 y1 += self.h*fn
                 y2 += (0.5*self.h)*fn
 
                 # get RHS at half-step, perform half step update
-                fn = self.f(t+0.5*self.h, y2)
+                fn = self.f(t+0.5*self.h, y2, *args)
                 y2 += (0.5*self.h)*fn
 
                 # compute error estimate
