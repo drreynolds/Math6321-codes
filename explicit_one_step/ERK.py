@@ -42,7 +42,7 @@ class ERK:
         self.s = c.size
 
         # check for legal table
-        if ((np.size(c,0) != self.s) or (np.size(A,0) != self.s) or
+        if ((np.size(b,0) != self.s) or (np.size(A,0) != self.s) or
             (np.size(A,1) != self.s) or (np.linalg.norm(A - np.tril(A,-1), np.inf) > 1e-14)):
             raise ValueError("ERK ERROR: incompatible Butcher table supplied")
 
