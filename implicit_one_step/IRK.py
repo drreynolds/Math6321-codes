@@ -238,7 +238,7 @@ class IRK:
                 # perform diagonally-implicit Runge--Kutta update
                 t, y, success = self.irk_step(t, y, args)
                 if (not success):
-                    print("IRK::Evolve error in time step at t =", tcur)
+                    print("IRK::Evolve error in time step at t =", t)
                     return Y, False
 
             # store current results in output arrays

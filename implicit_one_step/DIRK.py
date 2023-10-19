@@ -165,7 +165,7 @@ class DIRK:
                 # perform diagonally-implicit Runge--Kutta update
                 t, y, success = self.dirk_step(t, y, args)
                 if (not success):
-                    print("DIRK::Evolve error in time step at t =", tcur)
+                    print("DIRK::Evolve error in time step at t =", t)
                     return Y, False
 
             # store current results in output arrays

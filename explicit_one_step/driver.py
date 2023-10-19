@@ -15,13 +15,13 @@ t0 = 0.0
 tf = 1.0
 
 # problem-definining functions and initial conditions
-def f(t,y,alpha):
-    """ ODE RHS function (with example parameter alpha) """
+def f(t,y):
+    """ ODE RHS function """
     return -y*np.exp(-t)
-def f_t(t,y,alpha):
+def f_t(t,y):
     """ t-derivative of ODE RHS function """
     return y*np.exp(-t)
-def f_y(t,y,alpha):
+def f_y(t,y):
     """ y-derivative of ODE RHS function """
     return np.array([[-np.exp(-t)]])
 def ytrue(t):
@@ -31,7 +31,6 @@ def ytrue(t):
 # shared testing data
 Nout = 3   # includes initial condition
 tspan = np.linspace(t0, tf, Nout)
-alpha = 1.0
 
 # create true solution results
 Ytrue = np.zeros((Nout,1))
@@ -51,9 +50,7 @@ for idx, h in enumerate(hvals):
     y0 = Ytrue[0,:]
     print("  h = ", h, ":")
     T2.reset()
-    # Note that this is where we provide the rhs function parameter alpha -- the "," is
-    # required to ensure that args is an iterable (and not a float).
-    Y, success = T2.Evolve(tspan, y0, h, args=(alpha,))
+    Y, success = T2.Evolve(tspan, y0, h)
 
     # output solution, errors, and overall error
     Yerr = np.abs(Y-Ytrue)
@@ -75,7 +72,7 @@ for idx, h in enumerate(hvals):
     y0 = Ytrue[0,:]
     print("  h = ", h, ":")
     H.reset()
-    Y, success = H.Evolve(tspan, y0, h, args=(alpha,))
+    Y, success = H.Evolve(tspan, y0, h)
 
     # output solution, errors, and overall error
     Yerr = np.abs(Y-Ytrue)
@@ -97,7 +94,7 @@ for idx, h in enumerate(hvals):
     y0 = Ytrue[0,:]
     print("  h = ", h, ":")
     E2.reset()
-    Y, success = E2.Evolve(tspan, y0, h, args=(alpha,))
+    Y, success = E2.Evolve(tspan, y0, h)
 
     # output solution, errors, and overall error
     Yerr = np.abs(Y-Ytrue)
@@ -119,7 +116,7 @@ for idx, h in enumerate(hvals):
     y0 = Ytrue[0,:]
     print("  h = ", h, ":")
     E3.reset()
-    Y, success = E3.Evolve(tspan, y0, h, args=(alpha,))
+    Y, success = E3.Evolve(tspan, y0, h)
 
     # output solution, errors, and overall error
     Yerr = np.abs(Y-Ytrue)
@@ -141,7 +138,7 @@ for idx, h in enumerate(hvals):
     y0 = Ytrue[0,:]
     print("  h = ", h, ":")
     E4.reset()
-    Y, success = E4.Evolve(tspan, y0, h, args=(alpha,))
+    Y, success = E4.Evolve(tspan, y0, h)
 
     # output solution, errors, and overall error
     Yerr = np.abs(Y-Ytrue)
