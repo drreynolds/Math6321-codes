@@ -135,7 +135,7 @@ class Explicit_LMM:
         # verify that a sufficient set of initial conditions have been supplied
         if (np.shape(y0)[0] < (self.k-1)):
             raise ValueError("insufficient initial conditions provided, ",
-                             np.shape(y0)[0], " < ", alpha.size-1)
+                             np.shape(y0)[0], " < ", self.k-1)
 
         # initialize output, and set first entry corresponding to initial condition
         t = np.zeros(tspan.size)
