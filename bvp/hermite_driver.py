@@ -21,7 +21,7 @@ from BVP import *
 
 # utility routine to map from physical/component space to linear algebra index space
 #    interval:  physical interval index [1 <= interval <= N]
-#    location:  location in interval [0=left, 1=midpoint, 2=right]
+#    location:  location in interval [0=left, 1=right]
 #    component: solution component at this location [0=u, 1=u']
 def index(interval, location, component):
     return ( 2*(interval-1) + 2*location + component )
